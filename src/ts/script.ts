@@ -118,10 +118,14 @@ function imageCandidates(place: Place): string[] {
   return [...new Set([place.cover, ...place.photos].map(safeURL).filter(Boolean))];
 }
 
+// 장소 사진은 대부분 외부 블로그 주소임. 네이버 블로그(pstatic.net) 등은 다른 사이트에서 불러오면
+// 차단(403)하므로, 어느 사이트에서 요청했는지(Referer)를 보내지 않도록 모든 장소 사진에 붙임.
+const EXTERNAL_IMAGE = `referrerpolicy="no-referrer"`;
+
 function renderImage(place: Place, alt = ""): string {
   const [cover, ...fallbacks] = imageCandidates(place);
   if (!cover) return "";
-  return `<img src="${escapeHTML(cover)}" alt="${escapeHTML(alt)}" data-fallbacks="${escapeHTML(JSON.stringify(fallbacks))}" loading="lazy">`;
+  return `<img src="${escapeHTML(cover)}" alt="${escapeHTML(alt)}" data-fallbacks="${escapeHTML(JSON.stringify(fallbacks))}" loading="lazy" ${EXTERNAL_IMAGE}>`;
 }
 
 function setupImages(root: ParentNode): void {
@@ -221,7 +225,7 @@ function navGroups(): NavGroup[] {
   const guide: Link[] = [
     [t("stay"), "stay.html"],
     [t("support"), "support.html"],
-    [t("infoCenter"), "info-center.html"],
+    [t("infoCenter"), "info-center.html?region=kangwon"],
     [t("medical"), "medical.html"],
     [t("qna"), "qna.html"],
   ];
@@ -399,7 +403,7 @@ const ICONS = {
 type IconName = keyof typeof ICONS;
 const HOME_SERVICES: [title: UIKey, text: UIKey, href: string, icon: IconName][] = [
   ["serviceStay", "serviceStayText", "stay.html?region=kangwon", "bed"],
-  ["serviceInfo", "serviceInfoText", "info-center.html", "pin"],
+  ["serviceInfo", "serviceInfoText", "info-center.html?region=kangwon", "pin"],
   ["serviceMedical", "serviceMedicalText", "medical.html?region=kangwon", "cross"],
   ["qna", "serviceQnaText", "qna.html", "chat"],
 ];
@@ -555,7 +559,7 @@ function renderRegionIntro(intro: RegionIntro | undefined): string {
   const image = safeURL(intro.cover);
   return `<section class="region-intro">
     <div class="region-intro-text">${paragraphs}</div>
-    ${image ? `<img class="region-intro-image" src="${escapeHTML(image)}" alt="" loading="lazy">` : ""}
+    ${image ? `<img class="region-intro-image" src="${escapeHTML(image)}" alt="" loading="lazy" ${EXTERNAL_IMAGE}>` : ""}
   </section>`;
 }
 
@@ -689,8 +693,7 @@ function renderMedical(items: Place[]): string {
 }
 
 function renderInfoCenters(items: Place[]): string {
-  return `${renderHeader("TRAVELER SUPPORT", t("infoCenter"), t("infoCenterLead"))}
-    ${renderCards(items)}${renderFooter()}`;
+  return renderRegionalCollection(items, "info-center.html", t("infoCenter"), "TRAVELER SUPPORT");
 }
 
 function renderSupport(): string {
@@ -698,7 +701,7 @@ function renderSupport(): string {
     `<article class="guide-card"><span class="guide-number">${number}</span><h2>${escapeHTML(title)}</h2><p>${escapeHTML(text)}</p><a href="${href}"${external ? ` target="_blank" rel="noopener noreferrer"` : ""}>${escapeHTML(link)}</a></article>`;
   return `${renderHeader("TRAVELER SUPPORT", t("supportTitle"), t("supportLead"))}
     <section class="guide-grid guide-grid-4">
-      ${card("01 · TOURIST HELP", t("infoCenter"), t("support1Text"), "info-center.html", t("support1Link"))}
+      ${card("01 · TOURIST HELP", t("infoCenter"), t("support1Text"), "info-center.html?region=kangwon", t("support1Link"))}
       ${card("02 · MEDICAL", t("medical"), t("support2Text"), "medical.html?region=kangwon", t("support2Link"))}
       ${card("03 · RESTROOM", t("support3Title"), t("support3Text"), "https://modootoilet.com/", t("support3Link"), true)}
       ${card("04 · Q&amp;A", t("faqTitle"), t("support4Text"), "qna.html", t("support4Link"))}
@@ -749,7 +752,7 @@ function renderPlace(index: TravelIndex): string {
   const cover = imageCandidates(place).length > 0;
   const heroImage = renderImage(place, t("heroAlt", { name: place.name }));
   const images = [...new Set(place.photos.map(safeURL).filter(Boolean))];
-  const gallery = images.length ? `<div class="gallery">${images.map((image, index) => `<img src="${escapeHTML(image)}" alt="${escapeHTML(t("photoAlt", { name: place.name, n: index + 1 }))}" loading="lazy">`).join("")}</div>` : "";
+  const gallery = images.length ? `<div class="gallery">${images.map((image, index) => `<img src="${escapeHTML(image)}" alt="${escapeHTML(t("photoAlt", { name: place.name, n: index + 1 }))}" loading="lazy" ${EXTERNAL_IMAGE}>`).join("")}</div>` : "";
   const aliasList = localAliases(place);
   const alias = aliasList.length ? `<span class="card-alias">${escapeHTML(aliasList.join(" · "))}</span>` : "";
   const rows = (<[label: UIKey, value: FieldValue | undefined][]>[
@@ -785,7 +788,7 @@ function renderPlace(index: TravelIndex): string {
     : collection === "medical"
       ? `medical.html?region=${region}`
       : collection === "infoCenters"
-        ? "info-center.html"
+        ? `info-center.html?region=${region}`
         : `local.html?region=${region}`;
   const backLabel = collection === "stay" ? t("stay") : collection === "medical" ? t("medical") : collection === "infoCenters" ? t("infoCenter") : t("backLocal");
   const tags = localTags(place);

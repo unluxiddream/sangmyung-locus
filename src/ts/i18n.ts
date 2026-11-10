@@ -180,7 +180,6 @@ const UI_KO = {
   regionalTitle: "{region} {title}",
   regionalLead: "지역을 골라 원하는 {title} 정보를 살펴보세요.",
   otherArea: "기타 지역",
-  infoCenterLead: "여행 중 필요한 지역 관광 정보를 안내하는 곳을 모았어요.",
   // 여행자 지원
   supportTitle: "여행 중 필요한 정보",
   supportLead: "낯선 곳에서도 편안하게 여행할 수 있도록 유용한 안내를 모았어요.",
@@ -349,7 +348,6 @@ const UI_EN: Record<UIKey, string> = {
   regionalTitle: "{title} in {region}",
   regionalLead: "Choose a region to see {title}.",
   otherArea: "Other areas",
-  infoCenterLead: "Places that provide local tourist information during your trip.",
   supportTitle: "Information for your trip",
   supportLead: "Useful information to help you travel comfortably, even somewhere new.",
   support1Text: "Find tourist information centers and travel information by region.",
@@ -512,7 +510,6 @@ const UI_JA: Record<UIKey, string> = {
   regionalTitle: "{region}の{title}",
   regionalLead: "地域を選んで、{title}の情報をご覧ください。",
   otherArea: "その他の地域",
-  infoCenterLead: "旅行中に役立つ地域の観光情報を案内する場所を集めました。",
   supportTitle: "旅行中に役立つ情報",
   supportLead: "初めての場所でも安心して旅できるよう、役立つ案内を集めました。",
   support1Text: "地域別の観光案内所と旅行情報をご覧ください。",

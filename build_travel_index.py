@@ -44,6 +44,7 @@ FOLDER_RULES = [
     ("info-center", "안내소", "infoCenters"),
 ]
 DEFAULT_KIND = "travel"
+FAQ_FILE = re.compile(r"Q\s*(?:&|n|and)\s*A", re.I)
 REGION_WORDS = {"kangwon": "강원", "gyeongsang": "경상", "jeolla": "전라", "chungcheong": "충청"}
 
 # Spelling variants written by different people, mapped to the values the site filters on.
@@ -182,6 +183,9 @@ def folder_names(path: Path, root: Path) -> list[str]:
 
 
 def classify(path: Path, root: Path) -> str:
+    # Q&A files are recognised by name (QnA_경상도.md, Q&A_경상도.md) wherever they are placed.
+    if FAQ_FILE.search(nfc(path.stem)):
+        return "faq"
     folders = folder_names(path, root)
     for folder, word, kind in FOLDER_RULES:
         if folder in folders or any(word in name for name in folders):
