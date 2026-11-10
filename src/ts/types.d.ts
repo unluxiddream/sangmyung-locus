@@ -14,6 +14,8 @@ interface Place {
   cover: FieldValue;
   info: FieldValue;
   address: FieldValue;
+  // en/ja 색인에만 있음: 번역 주소 아래 함께 보여줄 한국어 원문 주소
+  addressKo?: FieldValue;
   contact: FieldValue;
   holiday: FieldValue;
   admission: FieldValue;
@@ -28,13 +30,36 @@ interface Place {
   courses: string[];
   tags: string[];
   filmingLocations: FieldValue;
+  // 축제 파일에만 값이 있음 (YAML: 주최-주관, 축제 기간)
+  organizer?: FieldValue;
+  festivalPeriod?: FieldValue;
   description: string;
   photos: string[];
   mapEmbed: string;
   source: string;
 }
 
-type TravelIndex = Record<CollectionKey, Place[]>;
+// content/ko의 "소개" 폴더 글: 로컬 스팟 페이지에서 도 이름 아래에 표시
+interface RegionIntro {
+  region: RegionKey;
+  name: string;
+  info: FieldValue;
+  cover: FieldValue;
+  description: string;
+  source: string;
+}
+
+// content/ko의 "Q&A" 폴더 글 (Q. / A. 형식)
+interface FaqItem {
+  question: string;
+  answer: string;
+  region: RegionKey | "";
+}
+
+type TravelIndex = Record<CollectionKey, Place[]> & {
+  regionIntros: Partial<Record<RegionKey, RegionIntro>>;
+  faq: FaqItem[];
+};
 
 interface KoreaMapRegion {
   name: string;

@@ -22,6 +22,10 @@
   text-rendering: optimizeLegibility;
 }
 
+/* 일본어 화면은 한자를 일본식 글꼴로 표시하고, 띄어쓰기가 없으므로 글자 단위 줄바꿈 허용 */
+:root:lang(ja) { font-family: "Noto Sans", "Noto Sans JP", "Noto Sans KR", sans-serif; }
+:root:lang(ja) .nav-group > a { word-break: normal; overflow-wrap: anywhere; }
+
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 body { margin: 0; background: #fff; color: var(--ink); }
@@ -135,6 +139,11 @@ body.rail-collapsed .rail-toggle { right: 10px; }
 .page-heading .eyebrow { margin-bottom: 15px; }
 .page-heading h1 { margin: 0; color: var(--green-deep); font-size: clamp(35px, 4vw, 54px); letter-spacing: -.08em; }
 .page-heading p { max-width: 600px; margin: 14px 0 0; color: var(--muted); font-size: 13px; line-height: 1.9; }
+.region-intro { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 32px; margin: 0 0 32px; padding: 26px 28px; border-radius: 16px; background: #f3f4ee; }
+.region-intro-text p { margin: 0 0 10px; color: #5f6855; font-size: 13px; line-height: 1.95; }
+.region-intro-text p:last-child { margin-bottom: 0; }
+.region-intro-image { width: 170px; height: auto; }
+.faq-item p { white-space: pre-line; }
 .region-tabs { display: flex; flex-wrap: wrap; gap: 9px; margin: 0 0 35px; }
 .region-section { padding: 30px 0 20px; border-top: 1px solid var(--line); }
 .region-section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
@@ -198,6 +207,7 @@ body.rail-collapsed .rail-toggle { right: 10px; }
 .detail-table { width: 100%; border-collapse: collapse; border-top: 2px solid var(--green); background: #fff; }
 .detail-table th, .detail-table td { padding: 14px 17px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; font-size: 12px; line-height: 1.8; }
 .detail-table th { width: 145px; color: #78806d; font-weight: 600; }
+.detail-table .address-ko { display: block; margin-top: 4px; color: #8a9183; font-size: 11px; }
 .detail-table a { color: var(--green); text-decoration: underline; text-underline-offset: 2px; }
 .guide-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px; margin-top: 30px; }
 .guide-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -268,6 +278,8 @@ body.rail-collapsed .rail-toggle { right: 10px; }
   .page-heading { padding: 48px 0 25px; }
   .page-heading h1 { font-size: 37px; }
   .region-section h2 { font-size: 20px; }
+  .region-intro { grid-template-columns: 1fr; padding: 20px; }
+  .region-intro-image { display: none; }
   .editor-pick { grid-template-columns: 1fr; }
   .random-panel { padding: 20px; }
   .ticket-grid { grid-template-columns: 1fr; }
