@@ -1,0 +1,12 @@
+{
+  "types": {
+    "aliases": "aliases",
+    "cssclasses": "multitext",
+    "tags": "tags",
+    "대지역": "multitext",
+    "메인 테마": "multitext",
+    "서브 테마": "multitext",
+    "태그": "multitext",
+    "코스": "multitext"
+  }
+}

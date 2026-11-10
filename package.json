@@ -1,0 +1,16 @@
+{
+  "name": "locus",
+  "private": true,
+  "description": "Markdown 여행지 자료를 JSON으로 색인해 보여주는 정적 로컬 여행 아카이브",
+  "scripts": {
+    "build": "python3 build_travel_index.py && tsc",
+    "build:content": "python3 build_travel_index.py",
+    "build:ts": "tsc",
+    "watch": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "serve": "python3 -m http.server 8000 --directory dist"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
+}

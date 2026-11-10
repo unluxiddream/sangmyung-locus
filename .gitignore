@@ -1,0 +1,14 @@
+# 의존성 / 빌드 결과물
+node_modules/
+dist/
+
+# 개인 작업 공간
+TEST/
+.venv/
+.obsidian/workspace*.json
+
+# 시스템 / 캐시
+.DS_Store
+__pycache__/
+*.pyc
+npm-debug.log*
