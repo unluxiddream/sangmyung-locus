@@ -421,3 +421,36 @@ body[data-page="home"] .page-main { width: 100%; max-width: none; padding-bottom
   .service-link:nth-child(even) { border-left: 1px dotted #6f9b8c; }
   .service-icon { width: 64px; height: 64px; }
 }
+
+/* 에디터's Pick: 에디터 전환 버튼 + Markdown 블로그 글 (처음 받은 초안의 디자인을 공통 형식으로 사용) */
+.editor-switch { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 48px; }
+.editor-switch .pill { display: inline-flex; gap: 6px; align-items: baseline; }
+.editor-switch .pill span { font-size: 11px; opacity: .75; }
+.editor-switch-bottom { margin-top: 64px; padding-top: 8px; border-top: 1px solid var(--line); }
+.editor-switch-bottom .editor-switch { margin-top: 24px; }
+.post-list { display: flex; flex-wrap: wrap; gap: 8px; margin: -8px 0 24px; }
+.post { max-width: 760px; margin: 0 auto; color: #252525; text-align: center; word-break: keep-all; }
+.post h2, .post h3, .post h4, .post h5, .post h6 { margin: 48px 0 14px; color: var(--green-deep); line-height: 1.5; letter-spacing: -.04em; }
+.post h2 { font-size: clamp(24px, 3vw, 30px); }
+.post h3 { font-size: 22px; }
+.post h4 { font-size: 18px; }
+.post h5, .post h6 { font-size: 15px; }
+.post p { margin: 12px auto 18px; font-size: 15px; line-height: 1.95; }
+.post a { color: var(--green); text-decoration: underline; text-underline-offset: 3px; }
+.post code { padding: 1px 5px; border-radius: 4px; background: #f1f3ec; font-size: .92em; }
+.post ul, .post ol { display: inline-block; margin: 6px auto 18px; padding-left: 1.3em; font-size: 15px; line-height: 1.9; text-align: left; }
+.post blockquote { margin: 20px auto; padding: 14px 20px; border-left: 3px solid var(--green-soft); background: #f3f4ee; color: #5f6855; font-size: 14px; line-height: 1.9; text-align: left; }
+.post hr { margin: 44px auto; border: 0; border-top: 1px solid var(--line); }
+.post-figure { margin: 22px 0; }
+.post-figure img, .post-inline-image { display: block; width: 100%; height: auto; border-radius: 12px; background: #eef0e8; }
+.post-place { margin: 18px auto 32px; padding: 14px 18px; border-radius: 10px; background: #f6f7f6; text-align: left; }
+.post-place-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 14px; padding: 3px 7px 9px; color: var(--ink) !important; font-weight: 700; text-decoration: none !important; }
+.post-place-more { color: var(--green); font-size: 12px; font-weight: 700; }
+.post-place .detail-table { border-top: 0; background: transparent; }
+.post-place .detail-table th, .post-place .detail-table td { padding: 5px 10px; border-bottom: 0; font-size: 13px; }
+.post-place-missing { color: var(--muted); font-weight: 700; }
+@media (max-width: 620px) {
+  .post p, .post ul, .post ol { font-size: 14px; }
+  .post-place { padding: 12px; }
+  .post-place .detail-table th { width: 78px; }
+}

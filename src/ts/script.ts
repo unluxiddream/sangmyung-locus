@@ -114,7 +114,9 @@ function localAliases(place: Place): string[] {
   return LANG === "ko" ? place.aliases : [];
 }
 
-function imageCandidates(place: Place): string[] {
+type ImageSource = Pick<Place, "cover" | "photos">;
+
+function imageCandidates(place: ImageSource): string[] {
   return [...new Set([place.cover, ...place.photos].map(safeURL).filter(Boolean))];
 }
 
@@ -122,7 +124,7 @@ function imageCandidates(place: Place): string[] {
 // 차단(403)하므로, 어느 사이트에서 요청했는지(Referer)를 보내지 않도록 모든 장소 사진에 붙임.
 const EXTERNAL_IMAGE = `referrerpolicy="no-referrer"`;
 
-function renderImage(place: Place, alt = ""): string {
+function renderImage(place: ImageSource, alt = ""): string {
   const [cover, ...fallbacks] = imageCandidates(place);
   if (!cover) return "";
   return `<img src="${escapeHTML(cover)}" alt="${escapeHTML(alt)}" data-fallbacks="${escapeHTML(JSON.stringify(fallbacks))}" loading="lazy" ${EXTERNAL_IMAGE}>`;
@@ -416,7 +418,7 @@ function firstWithImage(places: Place[]): Place | null {
   return places.find((place) => imageCandidates(place).length) || null;
 }
 
-function renderPhotoTile(place: Place | null, label: string, href: string, className: string, sub = ""): string {
+function renderPhotoTile(place: ImageSource | null, label: string, href: string, className: string, sub = ""): string {
   const picture = place ? renderImage(place) : "";
   return `<a class="photo-tile ${className}${picture ? " has-image" : ""}" href="${href}">${picture}<span class="tile-label">${escapeHTML(label)}${sub ? `<small>${escapeHTML(sub)}</small>` : ""}</span></a>`;
 }
@@ -464,7 +466,8 @@ function renderHomeFooter(): string {
   </footer>`;
 }
 
-function renderHome(places: Place[]): string {
+function renderHome(index: TravelIndex): string {
+  const places = index.travel;
   const themeTiles = HOME_THEMES.map(([label, theme]) => renderPhotoTile(
     firstWithImage(places.filter((place) => place.themes.includes(theme))),
     term(label),
@@ -472,7 +475,8 @@ function renderHome(places: Place[]): string {
     "theme-tile",
   )).join("");
   const editorTiles = REGION_LINKS.map(([label, region]) => renderPhotoTile(
-    firstWithImage(places.filter((place) => placeMatchesGroup(place, region))),
+    editorPosts(index, region).find((post) => imageCandidates(post).length)
+      ?? firstWithImage(places.filter((place) => placeMatchesGroup(place, region))),
     t("editorTile", { initial: CURATION_EDITORS[region] }),
     `curation.html?pick=editor&region=${region}`,
     "editor-tile",
@@ -587,38 +591,164 @@ function renderLocal(places: Place[], intros: TravelIndex["regionIntros"]): stri
     ${sections}${renderFooter()}`;
 }
 
-function renderCuration(places: Place[]): string {
+// ---- 에디터's Pick: Markdown 블로그 글 ----
+// HTML 태그는 그대로 글자로 보이고(실행 안 됨), 아래 문법만 화면 요소로 바뀜:
+// # 제목, 문단(빈 줄), 줄바꿈(Enter), **굵게**, *기울임*, `코드`, - 목록, 1. 목록, > 인용, ---,
+// ![설명](이미지 주소), [글자](링크), [[장소명]] 장소 링크, ![[장소명]] 방문 정보 박스
+
+function findPlace(index: TravelIndex, name: string): Place | null {
+  const key = name.normalize("NFC").trim();
+  for (const collection of COLLECTIONS) {
+    const place = index[collection].find((item) => item.id === key);
+    if (place) return place;
+  }
+  return null;
+}
+
+function renderPlaceBox(index: TravelIndex, name: string): string {
+  const place = findPlace(index, name);
+  if (!place) return `<p class="post-place-missing">📍 ${escapeHTML(name)}</p>`;
+  const rows = renderInfoRows(place);
+  return `<aside class="post-place">
+    <a class="post-place-head" href="${linkForPlace(place)}"><span>${escapeHTML(t("placeBoxTitle", { name: place.name }))}</span><span class="post-place-more">${t("cardMore")}</span></a>
+    ${rows ? `<table class="detail-table"><tbody>${rows}</tbody></table>` : ""}
+  </aside>`;
+}
+
+function renderInline(text: string, index: TravelIndex): string {
+  const pattern = /!?\[\[([^\]|#]+)(?:[|#]([^\]]*))?\]\]|!\[([^\]]*)\]\(\s*(\S+?)\s*(?:"[^"]*")?\)|\[([^\]]+)\]\(\s*(\S+?)\s*\)|\*\*(.+?)\*\*|\*([^*\s][^*]*)\*|`([^`]+)`/g;
+  let html = "";
+  let last = 0;
+  for (const match of text.matchAll(pattern)) {
+    html += escapeHTML(text.slice(last, match.index));
+    last = (match.index ?? 0) + match[0].length;
+    const [whole, wiki, wikiLabel, imageAlt, imageURL, linkText, linkURL, bold, italic, code] = match;
+    if (wiki !== undefined) {
+      const place = findPlace(index, wiki);
+      const label = escapeHTML((wikiLabel || place?.name || wiki).trim());
+      html += place ? `<a class="post-place-link" href="${linkForPlace(place)}">${label}</a>` : label;
+    } else if (imageURL !== undefined) {
+      const url = safeURL(imageURL);
+      html += url ? `<img class="post-inline-image" src="${escapeHTML(url)}" alt="${escapeHTML(imageAlt)}" loading="lazy" ${EXTERNAL_IMAGE}>` : "";
+    } else if (linkURL !== undefined) {
+      const url = safeURL(linkURL);
+      html += url ? `<a href="${escapeHTML(url)}" target="_blank" rel="noopener noreferrer">${renderInline(linkText, index)}</a>` : renderInline(linkText, index);
+    } else if (bold !== undefined) {
+      html += `<strong>${renderInline(bold, index)}</strong>`;
+    } else if (italic !== undefined) {
+      html += `<em>${renderInline(italic, index)}</em>`;
+    } else if (code !== undefined) {
+      html += `<code>${escapeHTML(code)}</code>`;
+    } else {
+      html += escapeHTML(whole);
+    }
+  }
+  return html + escapeHTML(text.slice(last));
+}
+
+function renderMarkdown(markdown: string, index: TravelIndex): string {
+  const blocks: string[] = [];
+  let paragraph: string[] = [];
+  let list: { ordered: boolean; items: string[] } | null = null;
+  let quote: string[] = [];
+  const flush = () => {
+    // 문단 안의 줄바꿈(Enter)은 Obsidian 미리보기처럼 그대로 줄바꿈으로 보여줌
+    if (paragraph.length) blocks.push(`<p>${paragraph.map((line) => renderInline(line, index)).join("<br>")}</p>`);
+    if (list) blocks.push(`<${list.ordered ? "ol" : "ul"}>${list.items.map((item) => `<li>${renderInline(item, index)}</li>`).join("")}</${list.ordered ? "ol" : "ul"}>`);
+    if (quote.length) blocks.push(`<blockquote>${quote.map((line) => renderInline(line, index)).join("<br>")}</blockquote>`);
+    paragraph = [];
+    list = null;
+    quote = [];
+  };
+  for (const raw of markdown.replace(/\r\n?/g, "\n").split("\n")) {
+    const line = raw.trim();
+    if (!line) {
+      flush();
+      continue;
+    }
+    const heading = line.match(/^(#{1,6})\s+(.+?)\s*#*$/);
+    const embed = line.match(/^!\[\[([^\]|#]+)(?:[|#][^\]]*)?\]\]$/);
+    const image = line.match(/^!\[([^\]]*)\]\(\s*(\S+?)\s*(?:"[^"]*")?\)$/);
+    const bullet = line.match(/^[-*+]\s+(.*)$/);
+    const numbered = line.match(/^\d+[.)]\s+(.*)$/);
+    const quoted = line.match(/^>\s?(.*)$/);
+    if (/^(-{3,}|\*{3,}|_{3,})$/.test(line)) {
+      flush();
+      blocks.push("<hr>");
+    } else if (heading) {
+      // 페이지 제목(h1)은 "I의 전라도"이므로 글 속 제목은 한 단계씩 낮춤
+      flush();
+      const level = Math.min(heading[1].length + 1, 6);
+      blocks.push(`<h${level}>${renderInline(heading[2], index)}</h${level}>`);
+    } else if (embed) {
+      flush();
+      blocks.push(renderPlaceBox(index, embed[1]));
+    } else if (image) {
+      flush();
+      const url = safeURL(image[2]);
+      if (url) blocks.push(`<figure class="post-figure"><img src="${escapeHTML(url)}" alt="${escapeHTML(image[1])}" loading="lazy" ${EXTERNAL_IMAGE}></figure>`);
+    } else if (bullet || numbered) {
+      const ordered = !bullet;
+      if (paragraph.length || quote.length || (list && list.ordered !== ordered)) flush();
+      if (!list) list = { ordered, items: [] };
+      list.items.push((bullet ?? numbered)![1]);
+    } else if (quoted) {
+      if (paragraph.length || list) flush();
+      quote.push(quoted[1]);
+    } else {
+      if (list || quote.length) flush();
+      paragraph.push(line);
+    }
+  }
+  flush();
+  return blocks.join("\n");
+}
+
+function renderEditorSwitch(active: RegionKey): string {
+  return `<nav class="editor-switch" aria-label="${escapeHTML(t("editorSelect"))}">${REGION_LINKS.map(([label, region]) => `<a class="pill${region === active ? " active" : ""}" href="curation.html?pick=editor&amp;region=${region}"${region === active ? ` aria-current="page"` : ""}>${escapeHTML(t("editorTile", { initial: CURATION_EDITORS[region] }))} <span>${escapeHTML(term(label))}</span></a>`).join("")}</nav>`;
+}
+
+function editorPosts(index: TravelIndex, region: RegionKey): EditorPick[] {
+  return index.editorPicks.filter((post) => post.editor === CURATION_EDITORS[region]);
+}
+
+function renderEditorPick(index: TravelIndex): string {
   const params = new URLSearchParams(location.search);
-  const pick = params.get("pick") || "editor";
-  const isCulture = pick === "kculture";
-  const courses = [...new Set(places.flatMap((place) => place.courses))]
-    .filter((course) => course && course !== "K-컬쳐" && course !== "(미정)")
-    .sort((a, b) => a.localeCompare(b, "ko"));
-  const course = isCulture ? "K-컬쳐" : params.get("course") || courses[0] || "(미정)";
+  const requestedRegion = params.get("region");
+  const region: RegionKey = isRegionKey(requestedRegion) ? requestedRegion : "kangwon";
+  const posts = editorPosts(index, region);
+  const post = posts.find((item) => item.id === params.get("post")) ?? posts[0];
+  const title = t("curationTitle", { initial: CURATION_EDITORS[region], region: term(REGION_GROUPS[region].label) });
+  if (post) document.title = `${post.name} | LOCUS`;
+  const others = posts.length > 1
+    ? `<nav class="post-list" aria-label="${escapeHTML(t("editorOtherPosts"))}">${posts.map((item) => `<a class="pill${item === post ? " active" : ""}" href="curation.html?pick=editor&amp;region=${region}&amp;post=${encodeURIComponent(item.id)}">${escapeHTML(item.name)}</a>`).join("")}</nav>`
+    : "";
+  const body = post
+    ? `<article class="post">${renderMarkdown(post.markdown, index)}</article>`
+    : renderEmpty(t("editorEmptyTitle"), t("editorEmptyText"));
+  return `${renderEditorSwitch(region)}
+    ${renderHeader("EDITOR'S PICK", title, post?.info ? String(post.info) : t("curationEditorLead"))}
+    ${others}
+    ${body}
+    <div class="editor-switch-bottom">${renderEditorSwitch(region)}</div>${renderFooter()}`;
+}
+
+function renderCulturePick(places: Place[]): string {
+  const params = new URLSearchParams(location.search);
   const requestedRegion = params.get("region");
   const region: RegionKey = isRegionKey(requestedRegion) ? requestedRegion : "kangwon";
   const regionName = term(REGION_GROUPS[region].label);
-  const courseName = course === "(미정)" ? t("editorPick") : term(course);
-  const selectedCoursePlaces = course === "(미정)"
-    ? places.filter((place) => place.courses.length === 0)
-    : places.filter((place) => place.courses.includes(course));
-  const curated = selectedCoursePlaces.filter((place) => placeMatchesGroup(place, region));
-  const courseTabs = !isCulture && courses.length
-    ? `<nav class="theme-pills" aria-label="${escapeHTML(t("courseSelect"))}">${courses.map((item) => `<a class="pill${item === course ? " active" : ""}" href="curation.html?pick=editor&amp;course=${encodeURIComponent(item)}&amp;region=${encodeURIComponent(region)}">${escapeHTML(item === "(미정)" ? t("editorPick") : term(item))}</a>`).join("")}</nav>`
-    : "";
-  const regionTabs = renderRegionTabs(region, (slug) => isCulture
-    ? `curation.html?pick=kculture&region=${slug}`
-    : `curation.html?pick=editor&course=${encodeURIComponent(course)}&region=${slug}`);
-  const title = isCulture ? t("kculturePick") : t("curationTitle", { initial: CURATION_EDITORS[region], region: regionName });
-  const sectionTitle = isCulture
-    ? t("cultureSectionTitle", { region: regionName })
-    : t("courseSectionTitle", { course: courseName, region: regionName });
-  return `${renderHeader("TRAVEL CURATION", title, isCulture ? t("curationCultureLead") : t("curationEditorLead"))}
-    ${courseTabs}
-    ${regionTabs}
-    <div class="editor-pick"><div class="editor-note"><h2>${escapeHTML(isCulture ? t("cultureNoteTitle") : t("editorNoteTitle"))}</h2><p>${escapeHTML(isCulture ? t("cultureNoteText") : t("editorNoteText"))}</p></div>
-    <div class="editor-note"><h2>${escapeHTML(t("otherCuration"))}</h2><p><a class="text-link" href="curation.html?pick=${isCulture ? "editor" : "kculture"}">${escapeHTML(isCulture ? t("editorPick") : t("kculturePick"))} ↗</a><br><br><a class="text-link" href="random.html">${escapeHTML(t("randomPick"))} ↗</a> &nbsp; <a class="text-link" href="mbti.html">${escapeHTML(t("travelMbti"))} ↗</a></p></div></div>
-    <section class="region-section">${renderSectionHead(sectionTitle, curated.length)}${renderCards(curated)}</section>${renderFooter()}`;
+  const curated = places.filter((place) => place.courses.includes("K-컬쳐") && placeMatchesGroup(place, region));
+  return `${renderHeader("TRAVEL CURATION", t("kculturePick"), t("curationCultureLead"))}
+    ${renderRegionTabs(region, (slug) => `curation.html?pick=kculture&region=${slug}`)}
+    <div class="editor-pick"><div class="editor-note"><h2>${escapeHTML(t("cultureNoteTitle"))}</h2><p>${escapeHTML(t("cultureNoteText"))}</p></div>
+    <div class="editor-note"><h2>${escapeHTML(t("otherCuration"))}</h2><p><a class="text-link" href="curation.html?pick=editor">${escapeHTML(t("editorPick"))} ↗</a><br><br><a class="text-link" href="random.html">${escapeHTML(t("randomPick"))} ↗</a> &nbsp; <a class="text-link" href="mbti.html">${escapeHTML(t("travelMbti"))} ↗</a></p></div></div>
+    <section class="region-section">${renderSectionHead(t("cultureSectionTitle", { region: regionName }), curated.length)}${renderCards(curated)}</section>${renderFooter()}`;
+}
+
+function renderCuration(index: TravelIndex): string {
+  const pick = new URLSearchParams(location.search).get("pick") || "editor";
+  return pick === "kculture" ? renderCulturePick(index.travel) : renderEditorPick(index);
 }
 
 function renderArchive(places: Place[]): string {
@@ -738,24 +868,8 @@ function fieldLines(value: FieldValue | undefined): string[] {
   return items.map((item) => String(item ?? "").trim()).filter(Boolean);
 }
 
-function renderPlace(index: TravelIndex): string {
-  const params = new URLSearchParams(location.search);
-  const id = params.get("id");
-  const source = params.get("source");
-  const collection = params.get("collection") || "travel";
-  const places = isCollectionKey(collection) ? index[collection] : [];
-  const place = places.find((item) => source ? item.source === source : item.id === id);
-  if (!place) {
-    return `${renderHeader("LOCAL SPOT", t("placeNotFoundTitle"), t("placeNotFoundLead"))}<a class="button" href="local.html?region=jeolla">${escapeHTML(t("backToLocal"))}</a>${renderFooter()}`;
-  }
-  document.title = `${place.name} | LOCUS`;
-  const cover = imageCandidates(place).length > 0;
-  const heroImage = renderImage(place, t("heroAlt", { name: place.name }));
-  const images = [...new Set(place.photos.map(safeURL).filter(Boolean))];
-  const gallery = images.length ? `<div class="gallery">${images.map((image, index) => `<img src="${escapeHTML(image)}" alt="${escapeHTML(t("photoAlt", { name: place.name, n: index + 1 }))}" loading="lazy" ${EXTERNAL_IMAGE}>`).join("")}</div>` : "";
-  const aliasList = localAliases(place);
-  const alias = aliasList.length ? `<span class="card-alias">${escapeHTML(aliasList.join(" · "))}</span>` : "";
-  const rows = (<[label: UIKey, value: FieldValue | undefined][]>[
+function renderInfoRows(place: Place): string {
+  return (<[label: UIKey, value: FieldValue | undefined][]>[
     ["rowAddress", place.address],
     ["rowFestivalPeriod", place.festivalPeriod],
     ["rowOrganizer", place.organizer],
@@ -781,6 +895,26 @@ function renderPlace(index: TravelIndex): string {
       const original = korean.length ? `<span class="address-ko" lang="ko">${korean.map(escapeHTML).join("<br>")}</span>` : "";
       return `<tr><th scope="row">${escapeHTML(t(label))}</th><td>${formatted}${original}</td></tr>`;
     }).join("");
+}
+
+function renderPlace(index: TravelIndex): string {
+  const params = new URLSearchParams(location.search);
+  const id = params.get("id");
+  const source = params.get("source");
+  const collection = params.get("collection") || "travel";
+  const places = isCollectionKey(collection) ? index[collection] : [];
+  const place = places.find((item) => source ? item.source === source : item.id === id);
+  if (!place) {
+    return `${renderHeader("LOCAL SPOT", t("placeNotFoundTitle"), t("placeNotFoundLead"))}<a class="button" href="local.html?region=jeolla">${escapeHTML(t("backToLocal"))}</a>${renderFooter()}`;
+  }
+  document.title = `${place.name} | LOCUS`;
+  const cover = imageCandidates(place).length > 0;
+  const heroImage = renderImage(place, t("heroAlt", { name: place.name }));
+  const images = [...new Set(place.photos.map(safeURL).filter(Boolean))];
+  const gallery = images.length ? `<div class="gallery">${images.map((image, index) => `<img src="${escapeHTML(image)}" alt="${escapeHTML(t("photoAlt", { name: place.name, n: index + 1 }))}" loading="lazy" ${EXTERNAL_IMAGE}>`).join("")}</div>` : "";
+  const aliasList = localAliases(place);
+  const alias = aliasList.length ? `<span class="card-alias">${escapeHTML(aliasList.join(" · "))}</span>` : "";
+  const rows = renderInfoRows(place);
   const body = place.description.split(/\n\s*\n/).filter(Boolean).map(escapeHTML).join("\n\n");
   const region = (Object.keys(REGION_GROUPS) as RegionKey[]).find((key) => placeMatchesGroup(place, key)) || "jeolla";
   const backLink = collection === "stay"
@@ -939,6 +1073,7 @@ async function start(): Promise<void> {
     }
     const regionIntros = index.regionIntros ?? {};
     const faq = Array.isArray(index.faq) ? index.faq : [];
+    if (!Array.isArray(index.editorPicks)) index.editorPicks = [];
     renderTopNav();
     renderLanguageSwitch();
     renderSidebar();
@@ -947,9 +1082,9 @@ async function start(): Promise<void> {
     const destinationURL = randomPlaceURL(places);
     setRandomDestinationLink(destinationURL);
     const renderers: Record<string, (() => string) | undefined> = {
-      home: () => renderHome(places),
+      home: () => renderHome(index),
       local: () => renderLocal(places, regionIntros),
-      curation: () => renderCuration(places),
+      curation: () => renderCuration(index),
       random: renderRandom,
       mbti: renderMBTI,
       archive: () => renderArchive(places),

@@ -56,9 +56,24 @@ interface FaqItem {
   region: RegionKey | "";
 }
 
+// 에디터's Pick 블로그 글: 코스에 에디터 이니셜(J/H/A/I)이 있는 Markdown 문서
+interface EditorPick {
+  id: string;
+  name: string;
+  editor: string;
+  province: string;
+  cover: FieldValue;
+  info: FieldValue;
+  photos: string[];
+  markdown: string;
+  places: string[];
+  source: string;
+}
+
 type TravelIndex = Record<CollectionKey, Place[]> & {
   regionIntros: Partial<Record<RegionKey, RegionIntro>>;
   faq: FaqItem[];
+  editorPicks: EditorPick[];
 };
 
 interface KoreaMapRegion {

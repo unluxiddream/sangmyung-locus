@@ -42,8 +42,12 @@ FOLDER_RULES = [
     ("stay", "숙박", "stay"),
     ("medical", "의료", "medical"),
     ("info-center", "안내소", "infoCenters"),
+    ("editor-pick", "에디터", "editorPick"),
 ]
 DEFAULT_KIND = "travel"
+# 에디터's Pick: a file whose 코스 holds an editor initial is a blog post by that editor.
+EDITOR_INITIALS = {"J", "H", "A", "I"}
+WIKI_LINK = re.compile(r"!?\[\[([^\]|#]+)(?:[|#][^\]]*)?\]\]")
 FAQ_FILE = re.compile(r"Q\s*(?:&|n|and)\s*A", re.I)
 REGION_WORDS = {"kangwon": "강원", "gyeongsang": "경상", "jeolla": "전라", "chungcheong": "충청"}
 
@@ -56,7 +60,9 @@ COURSE_ALIASES = {"K-컬처": "K-컬쳐"}
 TRANSLATED_FIELDS = [
     "name", "info", "address", "holiday", "admission", "parking",
     "transit", "hours", "filmingLocations", "organizer", "festivalPeriod", "description",
+    "markdown",
 ]
+KINDS = [*COLLECTIONS, "regionIntro", "editorPick"]
 FAQ_ITEM = re.compile(r"^\s*Q\.\s*(.+?)\s*\n\s*A\.\s*(.+?)\s*(?=^\s*Q\.|\Z)", re.M | re.S)
 # (source folder, destination folder): every file is copied as-is, keeping sub-folders.
 STATIC_COPIES = [
@@ -269,6 +275,28 @@ def parse_intro(path: Path, root: Path) -> dict[str, Any]:
     }
 
 
+def editor_of(courses: list[str]) -> str:
+    return next((course.strip().upper() for course in courses if course.strip().upper() in EDITOR_INITIALS), "")
+
+
+def parse_editor_pick(path: Path, root: Path) -> dict[str, Any]:
+    """Blog post for 에디터's Pick: the Markdown body is kept as written and rendered on the site."""
+    doc = parse_document(path, "editorPick", root)
+    _, body = read_markdown(path)
+    return {
+        "id": doc["id"],
+        "name": doc["name"],
+        "editor": editor_of(doc["courses"]),
+        "province": doc["province"],
+        "cover": doc["cover"],
+        "info": doc["info"],
+        "photos": [url.rstrip(".,)") for url in IMAGE_URL.findall(body)],
+        "markdown": body.strip(),
+        "places": sorted({nfc(name).strip() for name in WIKI_LINK.findall(body)}),
+        "source": doc["source"],
+    }
+
+
 def parse_faq(path: Path) -> list[dict[str, str]]:
     _, body = read_markdown(path)
     region = region_of(file_key(path))
@@ -281,14 +309,21 @@ def parse_faq(path: Path) -> list[dict[str, str]]:
 def read_language(lang: str, report: list[str]) -> dict[str, Any]:
     """Parse every Markdown file of one language into {kind: {file key: record}}."""
     root = CONTENT_DIR / lang
-    parsed: dict[str, Any] = {kind: {} for kind in [*COLLECTIONS, "regionIntro"]}
+    parsed: dict[str, Any] = {kind: {} for kind in KINDS}
     parsed["faq"] = []
     for path in sorted(root.rglob("*.md"), key=lambda item: nfc(item.as_posix())):
         kind = classify(path, root)
         if kind == "faq":
             parsed["faq"].extend(parse_faq(path))
             continue
-        record = parse_intro(path, root) if kind == "regionIntro" else parse_document(path, kind, root)
+        if kind == "regionIntro":
+            record = parse_intro(path, root)
+        else:
+            record = parse_document(path, kind, root)
+            # A spot whose 코스 is an editor initial (J/H/A/I) is an 에디터's Pick post, not a place.
+            if kind == "editorPick" or (kind == "travel" and editor_of(record["courses"])):
+                kind = "editorPick"
+                record = parse_editor_pick(path, root)
         key = file_key(path)
         previous = parsed[kind].get(key)
         if previous is None:
@@ -297,7 +332,7 @@ def read_language(lang: str, report: list[str]) -> dict[str, Any]:
         # The same place filed in two folders (e.g. local spot and K-culture): keep one, merge lists.
         if lang == BASE_LANGUAGE:
             report.append(f"(자동 처리됨) 같은 장소가 두 폴더에 있어 하나로 합침: {key}")
-        if kind != "regionIntro":
+        if kind in COLLECTIONS:
             for field in ("courses", "tags", "themes"):
                 previous[field] = list(dict.fromkeys(previous[field] + record[field]))
         # Fill fields that only the second copy has (e.g. 촬영장소), whichever copy sorts first.
@@ -311,7 +346,7 @@ def translate(base: dict[str, Any], translated: dict[str, Any], lang: str, repor
     """Overlay one language onto the ko records; anything missing falls back to Korean."""
     result: dict[str, Any] = {}
     missing_titles = 0
-    for kind in [*COLLECTIONS, "regionIntro"]:
+    for kind in KINDS:
         result[kind] = {}
         for key, record in base[kind].items():
             merged = dict(record)
@@ -320,9 +355,9 @@ def translate(base: dict[str, Any], translated: dict[str, Any], lang: str, repor
                 for field in TRANSLATED_FIELDS:
                     if field in other and other[field] and (field != "name" or other["name"] != key):
                         merged[field] = other[field]
-                if kind != "regionIntro" and other["name"] == key:
+                if kind in COLLECTIONS and other["name"] == key:
                     missing_titles += 1
-            if kind != "regionIntro":
+            if kind in COLLECTIONS:
                 # Shown under the translated address so visitors can show it to drivers or type it into Korean map apps.
                 merged["addressKo"] = record["address"]
             result[kind][key] = merged
@@ -339,6 +374,7 @@ def to_index(parsed: dict[str, Any]) -> dict[str, Any]:
     index: dict[str, Any] = {kind: list(parsed[kind].values()) for kind in COLLECTIONS}
     index["regionIntros"] = {intro["region"]: intro for intro in parsed["regionIntro"].values() if intro["region"]}
     index["faq"] = parsed["faq"]
+    index["editorPicks"] = list(parsed["editorPick"].values())
     return index
 
 
@@ -353,6 +389,13 @@ def check(parsed: dict[str, Any], report: list[str]) -> None:
     for intro in parsed["regionIntro"].values():
         if not intro["region"]:
             report.append(f"어느 도의 소개글인지 알 수 없음: {intro['source']}")
+    known = {key for kind in COLLECTIONS for key in parsed[kind]}
+    for post in parsed["editorPick"].values():
+        if not post["editor"]:
+            report.append(f"에디터's Pick 글의 코스에 에디터 이니셜(J/H/A/I)이 없어 어느 페이지에도 안 나옴: {post['source']}")
+        for name in post["places"]:
+            if name not in known:
+                report.append(f"에디터's Pick 글의 [[{name}]]와 같은 이름의 장소 파일이 없어 링크·방문 정보가 안 붙음: {post['source']}")
 
 
 def clean_dist() -> None:
@@ -406,7 +449,7 @@ def main() -> None:
     for lang, index in indexes.items():
         output_path(lang).write_text(json.dumps(index, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    counts = ", ".join(f"{kind}: {len(indexes[BASE_LANGUAGE][kind])}" for kind in [*COLLECTIONS, "regionIntros", "faq"])
+    counts = ", ".join(f"{kind}: {len(indexes[BASE_LANGUAGE][kind])}" for kind in [*COLLECTIONS, "regionIntros", "faq", "editorPicks"])
     print(f"Indexed content/{BASE_LANGUAGE} ({counts}) -> {output_path(BASE_LANGUAGE).relative_to(ROOT)}")
     for lang in TRANSLATIONS:
         print(f"Translated -> {output_path(lang).relative_to(ROOT)}")
