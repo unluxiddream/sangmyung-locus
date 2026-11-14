@@ -221,7 +221,7 @@ const UI_KO = {
   readFail: "여행지 정보를 읽을 수 없습니다.",
   pageNotFound: "페이지를 찾을 수 없습니다: {page}",
   errorTitle: "페이지를 불러오지 못했습니다.",
-  errorHelp: "프로젝트 폴더에서 <code>npm run build</code>와 <code>npm run serve</code>를 실행한 뒤 <code>http://localhost:8000</code>으로 접속해 주세요.",
+  errorHelp: "일시적인 문제일 수 있어요. 잠시 후 새로고침해 주세요.<br>문제가 계속되면 <a href=\"index.html\">홈으로</a> 이동해 다시 시도해 주세요.",
 };
 
 type UIKey = keyof typeof UI_KO;
@@ -380,7 +380,7 @@ const UI_EN: Record<UIKey, string> = {
   readFail: "Couldn't read travel data.",
   pageNotFound: "Page not found: {page}",
   errorTitle: "Couldn't load the page.",
-  errorHelp: "In the project folder, run <code>npm run build</code> and <code>npm run serve</code>, then open <code>http://localhost:8000</code>.",
+  errorHelp: "This may be a temporary problem. Please refresh the page in a moment.<br>If it keeps happening, go back to the <a href=\"index.html\">home page</a> and try again.",
 };
 
 const UI_JA: Record<UIKey, string> = {
@@ -537,7 +537,7 @@ const UI_JA: Record<UIKey, string> = {
   readFail: "旅行情報を読み取れませんでした。",
   pageNotFound: "ページが見つかりません: {page}",
   errorTitle: "ページを読み込めませんでした。",
-  errorHelp: "プロジェクトフォルダで <code>npm run build</code> と <code>npm run serve</code> を実行してから、<code>http://localhost:8000</code> を開いてください。",
+  errorHelp: "一時的な問題の可能性があります。しばらくしてからページを再読み込みしてください。<br>解決しない場合は、<a href=\"index.html\">ホーム</a>に戻ってもう一度お試しください。",
 };
 
 const UI: Record<Lang, Record<UIKey, string>> = { ko: UI_KO, en: UI_EN, ja: UI_JA };
