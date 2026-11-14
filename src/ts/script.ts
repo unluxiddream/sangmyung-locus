@@ -32,6 +32,7 @@ interface AxisResult {
 
 interface NavGroup {
   number: string;
+  twoLine?: boolean;
   label: string;
   href: string;
   links: Link[];
@@ -229,14 +230,14 @@ function renderSectionHead(title: string, count: number): string {
   return `<div class="region-section-head"><h2>${escapeHTML(title)}</h2><span class="count">${escapeHTML(t("placesCount", { count }))}</span></div>`;
 }
 
+// 상단 메뉴·오른쪽 사이드바 공통. 로컬 스팟(local.html)은 메뉴에 없고 홈 화면 지도로만 들어감.
 function navGroups(): NavGroup[] {
   const themes = THEMES.map((theme): Link => [term(theme), `archive.html?theme=${encodeURIComponent(theme)}`]);
-  const regions = REGION_LINKS.map(([label, region]): Link => [term(label), `local.html?region=${region}`]);
   const curation: Link[] = [
     [t("editorPick"), "curation.html?pick=editor"],
     [t("kculturePick"), "curation.html?pick=kculture"],
   ];
-  const explore: Link[] = [[t("randomPick"), "random.html"], [t("travelMbti"), "mbti.html"]];
+  const matching: Link[] = [[t("randomPick"), "random.html"], [t("travelMbti"), "mbti.html"]];
   const guide: Link[] = [
     [t("stay"), "stay.html"],
     [t("support"), "support.html"],
@@ -249,22 +250,23 @@ function navGroups(): NavGroup[] {
       number: "01",
       label: t("navCuration"),
       href: "curation.html?pick=editor",
-      links: [...curation, ...explore],
-      sections: [{ label: "", links: curation }, { label: t("moreToExplore"), links: explore }],
+      links: curation,
+      sections: [{ label: "", links: curation }],
     },
     {
       number: "02",
-      label: t("navArchive"),
-      href: "archive.html?theme=자연관광",
-      links: themes,
-      sections: [{ label: "", links: themes }],
+      label: t("navMatch"),
+      href: "random.html",
+      links: matching,
+      sections: [{ label: "", links: matching }],
     },
     {
       number: "03",
-      label: t("navLocal"),
-      href: "local.html?region=kangwon",
-      links: regions,
-      sections: [{ label: "", links: regions }],
+      label: t("navArchive"),
+      twoLine: true,
+      href: "archive.html?theme=자연관광",
+      links: themes,
+      sections: [{ label: "", links: themes }],
     },
     {
       number: "04",
@@ -285,7 +287,7 @@ function renderTopNav(): void {
   const groups = navGroups();
   nav.innerHTML = groups.map((group) => {
     // "테마 아카이브"는 좁은 화면에서 두 줄로 나뉘도록 단어별로 감쌈
-    const label = group.number === "02"
+    const label = group.twoLine
       ? `<span class="archive-nav-label">${group.label.split(" ").map((word) => `<span>${escapeHTML(word)}</span>`).join("")}</span>`
       : escapeHTML(group.label);
     const sections = group.sections.map((section) => `<div class="submenu-section">${section.label ? `<strong>${escapeHTML(section.label)}</strong>` : ""}${section.links.map(([itemLabel, link]) => `<a href="${link}">${escapeHTML(itemLabel)}</a>`).join("")}</div>`).join("");
@@ -346,8 +348,6 @@ function renderSidebar(): void {
   if (!existingToggle) {
     toggle.className = "rail-toggle";
     toggle.type = "button";
-    toggle.setAttribute("aria-label", t("railCollapse"));
-    toggle.setAttribute("aria-expanded", "true");
     rail.after(toggle);
     toggle.addEventListener("click", () => {
       const collapsed = rail.classList.toggle("is-collapsed");
@@ -356,7 +356,6 @@ function renderSidebar(): void {
       toggle.setAttribute("aria-label", collapsed ? t("railExpand") : t("railCollapse"));
       toggle.textContent = collapsed ? "‹" : "›";
     });
-    toggle.textContent = "›";
   }
   rail.querySelectorAll<HTMLDetailsElement>(".rail-group").forEach((group) => {
     group.querySelector("summary")?.addEventListener("click", () => {
@@ -373,7 +372,8 @@ function renderSidebar(): void {
     });
     rail.dataset.breakpointListener = "true";
   }
-  if (window.matchMedia("(max-width: 1100px)").matches && !rail.dataset.initialized) {
+  // 페이지를 새로 열면 사이드바는 항상 닫힌 상태로 시작 (HTML의 aside에도 is-collapsed가 있어 깜빡이지 않음)
+  if (!rail.dataset.initialized) {
     rail.classList.add("is-collapsed");
     document.body.classList.add("rail-collapsed");
     toggle.setAttribute("aria-expanded", "false");
@@ -402,10 +402,10 @@ const HOME_THEMES: [label: string, theme: string][] = [
   ["자연", "자연관광"],
 ];
 const TEAM_MEMBERS: [role: string, name: string][] = [
-  ["Role", "Name"],
-  ["Role", "Name"],
-  ["Role", "Name"],
-  ["Role", "Name"],
+  ["기획", "안혜진, 임수빈\n지선주, 홍지연"],
+  ["자료 조사", "안혜진, 임수빈\n지선주, 홍지연"],
+  ["개발", "임수빈"],
+  ["디자인", "임수빈, 지선주"],
 ];
 const ICONS = {
   compass: `<circle cx="12" cy="12" r="9"/><path d="M15.6 8.4l-2.1 5.1-5.1 2.1 2.1-5.1z"/>`,
@@ -468,7 +468,8 @@ function renderKoreaMap(places: Place[]): string {
 }
 
 function renderHomeFooter(): string {
-  const members = TEAM_MEMBERS.map(([role, name]) => `<div><strong>${escapeHTML(role)}</strong><span>${escapeHTML(name)}</span></div>`).join("");
+  // 이름 안의 \n은 줄바꿈
+  const members = TEAM_MEMBERS.map(([role, name]) => `<div><strong>${escapeHTML(role)}</strong><span>${name.split("\n").map(escapeHTML).join("<br>")}</span></div>`).join("");
   return `<footer class="home-footer home-bleed">
     <div class="home-footer-inner">
       <a class="home-footer-brand" href="index.html"><img src="image/LOCUS_logo_dark_700.png" alt="${escapeHTML(t("homeLabel"))}"></a>
@@ -519,7 +520,7 @@ function renderHome(index: TravelIndex): string {
     ${renderHomeTitle(t("navArchive"))}
     <nav class="theme-tiles" aria-label="${escapeHTML(t("themeSelect"))}">${themeTiles}</nav>
   </section>
-  <section class="home-section">
+  <section class="home-section" id="local-map">
     ${renderHomeTitle(t("navLocal"), `<p class="home-title-note">${escapeHTML(t("mapNote"))}</p>`)}
     <div class="map-wrap">${renderKoreaMap(places)}</div>
   </section>
@@ -810,7 +811,7 @@ function renderAbout(): string {
     <div class="place-hero"><div class="place-hero-content"><span class="eyebrow">OUR INTENTION</span><h1>${t("aboutHeroTitle")}</h1><p>${escapeHTML(t("aboutHeroText"))}</p></div></div>
     <section class="guide-grid">
       ${cards}
-    </section><div class="feature-band"><div><span class="section-kicker">START EXPLORING</span><h2>${escapeHTML(t("aboutBandTitle"))}</h2><p>${escapeHTML(t("aboutBandText"))}</p></div><a class="button" href="local.html?region=jeolla">${escapeHTML(t("aboutBandButton"))}</a></div>${renderFooter()}`;
+    </section><div class="feature-band"><div><span class="section-kicker">START EXPLORING</span><h2>${escapeHTML(t("aboutBandTitle"))}</h2><p>${escapeHTML(t("aboutBandText"))}</p></div><a class="button" href="index.html#local-map">${escapeHTML(t("aboutBandButton"))}</a></div>${renderFooter()}`;
 }
 
 function renderRegionalCollection(items: Place[], page: string, title: string, kicker: string): string {
@@ -937,7 +938,7 @@ function renderPlace(index: TravelIndex): string {
   const places = isCollectionKey(collection) ? index[collection] : [];
   const place = places.find((item) => source ? item.source === source : item.id === id);
   if (!place) {
-    return `${renderHeader("LOCAL SPOT", t("placeNotFoundTitle"), t("placeNotFoundLead"))}<a class="button" href="local.html?region=jeolla">${escapeHTML(t("backToLocal"))}</a>${renderFooter()}`;
+    return `${renderHeader("LOCAL SPOT", t("placeNotFoundTitle"), t("placeNotFoundLead"))}<a class="button" href="index.html#local-map">${escapeHTML(t("backToLocal"))}</a>${renderFooter()}`;
   }
   document.title = `${place.name} | LOCUS`;
   const cover = imageCandidates(place).length > 0;
@@ -955,11 +956,13 @@ function renderPlace(index: TravelIndex): string {
       ? `medical.html?region=${region}`
       : collection === "infoCenters"
         ? `info-center.html?region=${region}`
-        : `local.html?region=${region}`;
-  const backLabel = collection === "stay" ? t("stay") : collection === "medical" ? t("medical") : collection === "infoCenters" ? t("infoCenter") : t("backLocal");
+        : "index.html";
+  const backLabel = collection === "stay" ? t("stay") : collection === "medical" ? t("medical") : collection === "infoCenters" ? t("infoCenter") : t("backPrev");
+  // 관광지는 큐레이션·아카이브·랜덤 등 여러 곳에서 들어오므로 "이전 페이지"로 돌아감 (setupBackLinks)
+  const backAttr = ["stay", "medical", "infoCenters"].includes(collection) ? "" : " data-history-back";
   const tags = localTags(place);
   return `<div class="place-detail">
-    <a class="text-link" href="${backLink}">← ${escapeHTML(backLabel)}</a>
+    <a class="text-link" href="${backLink}"${backAttr}>← ${escapeHTML(backLabel)}</a>
     <section class="place-hero${cover ? " has-image" : ""}">${heroImage}<div class="place-hero-content"><span class="eyebrow">${escapeHTML(term(place.province || place.areas[0] || "") || "LOCAL SPOT")}</span><h1>${escapeHTML(place.name)} ${alias}</h1><p>${escapeHTML(place.info)}</p></div></section>
     ${gallery}
     <article class="description">${body || escapeHTML(place.info)}</article>
@@ -1060,6 +1063,24 @@ function setupRandom(places: Place[]): void {
   });
 }
 
+// 같은 사이트 안에서 넘어왔으면 브라우저 뒤로 가기, 아니면(주소로 바로 들어온 경우) href의 홈으로 이동
+function setupBackLinks(): void {
+  document.querySelectorAll<HTMLAnchorElement>("a[data-history-back]").forEach((link) => {
+    link.addEventListener("click", (event) => {
+      let sameSite = false;
+      try {
+        sameSite = Boolean(document.referrer) && new URL(document.referrer).origin === location.origin;
+      } catch {
+        sameSite = false;
+      }
+      if (sameSite && history.length > 1) {
+        event.preventDefault();
+        history.back();
+      }
+    });
+  });
+}
+
 function setupMBTI(places: Place[]): void {
   const form = document.querySelector<HTMLFormElement>("#mbti-form");
   const result = document.querySelector<HTMLElement>("#mbti-result");
@@ -1151,6 +1172,9 @@ async function start(): Promise<void> {
     if (page === "home") setupHome(app);
     if (page === "random") setupRandom(places);
     if (page === "mbti") setupMBTI(places);
+    if (page === "place") setupBackLinks();
+    // 화면을 JS로 그리므로 index.html#local-map 같은 주소는 그린 뒤에 직접 이동
+    if (location.hash) document.getElementById(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView();
   } catch (error) {
     console.error(error);
     app.innerHTML = `<div class="load-error"><strong>${escapeHTML(t("errorTitle"))}</strong><br>${escapeHTML(error instanceof Error ? error.message : error)}<br><br>${t("errorHelp")}</div>`;

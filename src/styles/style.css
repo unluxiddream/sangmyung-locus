@@ -389,6 +389,7 @@ body[data-page="home"] .page-main { width: 100%; max-width: none; padding-bottom
 .strip-buttons button:hover { border-color: var(--locus-deep); background: var(--locus-deep); color: #fff; }
 
 .map-wrap { display: flex; justify-content: center; }
+#local-map { scroll-margin-top: 100px; }
 .korea-map { width: min(100%, 470px); height: auto; overflow: visible; }
 .korea-map path { stroke: #fff; stroke-width: 1.6; stroke-linejoin: round; }
 .map-disabled path { fill: #c8c8c6; }
@@ -411,9 +412,9 @@ body[data-page="home"] .page-main { width: 100%; max-width: none; padding-bottom
 .home-footer-inner { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 28px 48px; }
 .home-footer-brand img { display: block; width: auto; height: 46px; }
 .home-footer-team { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 14px 24px; }
-.home-footer-team div { display: grid; gap: 3px; font-size: 13px; }
+.home-footer-team div { display: grid; align-content: start; gap: 3px; font-size: 13px; }
 .home-footer-team strong { font-weight: 600; }
-.home-footer-team span { color: #ffffffc4; }
+.home-footer-team span { color: #ffffffc4; word-break: keep-all; }
 .home-footer-about { margin: 0; color: #ffffffb3; font-size: 12px; line-height: 1.7; text-align: right; }
 .home-footer-copy { margin: 22px auto 0; color: #ffffffa6; font-size: 12px; text-align: center; }
 
