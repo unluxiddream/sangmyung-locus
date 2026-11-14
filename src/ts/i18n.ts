@@ -196,12 +196,6 @@ const UI_KO = {
   // Q&A
   faqTitle: "자주 묻는 질문",
   faqLead: "여행지 정보를 더욱 편리하게 이용하실 수 있도록 안내해 드려요.",
-  faq1Q: "여행지 운영 시간과 요금은 최신 정보인가요?",
-  faq1A: "운영 시간, 휴일, 요금은 변동될 수 있으니 방문 전 해당 장소의 공식 안내를 확인해 주세요.",
-  faq2Q: "여행지 정보가 잘못되었거나 추가하고 싶어요.",
-  faq2A: "여행지 정보는 정확하고 유용하게 안내할 수 있도록 계속 살펴보고 있어요.",
-  faq3Q: "모든 지역의 여행지를 볼 수 있나요?",
-  faq3A: "다양한 지역의 장소를 계속 소개하고 있어요. 새로운 여행지가 더해질 때마다 이곳에서 만나보세요.",
   // 상세 페이지
   placeNotFoundTitle: "여행지를 찾을 수 없어요.",
   placeNotFoundLead: "주소가 올바른지 확인하거나 지역별 스팟을 둘러보세요.",
@@ -327,7 +321,7 @@ const UI_EN: Record<UIKey, string> = {
   drawMessage: "We drew {count} places in {region}. Feel free to draw again!",
   mbtiTitle: "Which trip suits me?",
   mbtiLead: "Answer 8 questions to find your travel style and get local spots that suit you.",
-  mbtiNotice: "<strong>Four travel preferences</strong><br>O Outdoor ↔ I Indoor &nbsp;·&nbsp; F Flex ↔ B Budget<br>E Efficient ↔ R Relaxed &nbsp;·&nbsp; S Solo ↔ C Social",
+  mbtiNotice: "<strong>Four travel preferences</strong><br>O Outdoors ↔ I Indoors &nbsp;·&nbsp; F Luxury lover ↔ B Budget-conscious<br>E Activity-packed ↔ R Relaxed pace &nbsp;·&nbsp; S Solo traveler ↔ C Social traveler",
   mbtiSubmit: "See my travel style",
   mbtiSuggest: "How about these local spots?",
   mbtiRetry: "Try again",
@@ -363,12 +357,6 @@ const UI_EN: Record<UIKey, string> = {
   support4Link: "View Q&A ↗",
   faqTitle: "Frequently Asked Questions",
   faqLead: "Answers to help you get the most out of LOCUS.",
-  faq1Q: "Are opening hours and fees up to date?",
-  faq1A: "Hours, closing days and fees may change, so please check each place's official information before visiting.",
-  faq2Q: "Some information is wrong, or I'd like to suggest a place.",
-  faq2A: "We keep reviewing our information so that it stays accurate and useful.",
-  faq3Q: "Can I see places in every region?",
-  faq3A: "We keep adding places from more regions. Check back here as new destinations are added.",
   placeNotFoundTitle: "We couldn't find this place.",
   placeNotFoundLead: "Check the address, or browse spots by region.",
   backToLocal: "Back to local spots",
@@ -490,7 +478,7 @@ const UI_JA: Record<UIKey, string> = {
   drawMessage: "{region}から{count}件選びました。もう一度引いてもOKです！",
   mbtiTitle: "私に合う旅は？",
   mbtiLead: "8つの質問で旅の好みを知り、ぴったりのローカルスポットもおすすめします。",
-  mbtiNotice: "<strong>4つの旅の好み</strong><br>O アウトドア型 ↔ I インドア型 &nbsp;·&nbsp; F フレックス型 ↔ B コスパ型<br>E 充実型 ↔ R のんびり型 &nbsp;·&nbsp; S ひとり型 ↔ C 交流型",
+  mbtiNotice: "<strong>4つの旅の好み</strong><br>O 屋外派 ↔ I 屋内派 &nbsp;·&nbsp; F 贅沢派 ↔ B コスパ重視派<br>E 充実派 ↔ R のんびり派 &nbsp;·&nbsp; S ひとり時間派 ↔ C 交流派",
   mbtiSubmit: "私の旅のタイプを見る",
   mbtiSuggest: "こんなローカルスポットはいかが？",
   mbtiRetry: "もう一度",
@@ -526,12 +514,6 @@ const UI_JA: Record<UIKey, string> = {
   support4Link: "Q&Aを見る ↗",
   faqTitle: "よくある質問",
   faqLead: "旅行情報をより便利にご利用いただくためのご案内です。",
-  faq1Q: "営業時間や料金は最新情報ですか？",
-  faq1A: "営業時間・休業日・料金は変わる場合があるため、訪問前に各スポットの公式案内をご確認ください。",
-  faq2Q: "情報が間違っている、または追加してほしい場所があります。",
-  faq2A: "正確で役立つ情報をお届けできるよう、引き続き見直しています。",
-  faq3Q: "すべての地域の旅行先を見られますか？",
-  faq3A: "さまざまな地域のスポットを順次紹介しています。新しい旅行先が加わるたびに、こちらでご覧ください。",
   placeNotFoundTitle: "旅行先が見つかりません。",
   placeNotFoundLead: "URLをご確認いただくか、地域別のスポットをご覧ください。",
   backToLocal: "ローカルスポットに戻る",
@@ -632,97 +614,219 @@ function term(value: string): string {
 }
 
 // ---- 여행 MBTI ----
-// 질문 순서와 축(OI, FB, ER, SC)은 script.ts의 QUESTIONS와 같아야 함.
+// 원본: 여행 큐레이션_여행 MBTI 폴더의 질문.md / 해설지.md (한·영·일)
+// 질문 순서는 script.ts의 QUESTIONS와 같아야 함. 각 보기가 어느 글자(O/I, F/B, E/R, S/C)인지는 QUESTIONS에 있음.
+
+type MbtiLetter = "O" | "I" | "F" | "B" | "E" | "R" | "S" | "C";
 
 interface MbtiText {
-  questions: [question: string, first: string, second: string][];
-  titles: Record<"O" | "F" | "E" | "S", [string, string]>;
-  title: string;
-  traits: [first: string, second: string][];
-  traitJoiner: string;
-  describe: string;
+  intro: string[];
+  questions: { text: string; options: [head: string, body: string][] }[];
+  letters: Record<MbtiLetter, string>;
+  types: Record<string, [title: string, description: string]>;
+  tie: Record<"lean" | "last" | "early" | "late", string>;
 }
 
 const MBTI: Record<Lang, MbtiText> = {
   ko: {
+    intro: [
+      "퇴근 후의 달콤한 해방감도 잠시! 사람들로 가득 찬 지하철, 끝없이 느껴지는 개찰구 앞 줄, 하루 종일 업무에 시달려 뻐근해진 어깨와 목까지…. 겨우 집에 도착했지만 냉장고는 텅 비어 있고, 어느덧 창밖은 어둑어둑해졌다.",
+      "매일 반복되는 바쁜 일상에 몸도 마음도 지쳐가는 요즘, 문득 모든 것을 내려놓고 어디론가 훌쩍 떠나고 싶어진다!",
+      "'이번에는 정말 나를 위한 시간을 가져야겠어!'",
+      "그렇게 힐링 여행을 결심한 당신! 설레는 마음으로 LOCUS 홈페이지에 접속해 나에게 딱 맞는 여행지를 찾아보기 시작한다. 과연 당신은 어떤 스타일의 여행을 즐기게 될까?",
+    ],
     questions: [
-      ["여행지에서 더 마음이 끌리는 풍경은?", "바람과 햇살을 느끼는 해안길·숲길 산책", "전시와 이야기에 집중하는 실내 공간"],
-      ["비 예보가 있는 날, 나의 여행은?", "우산을 챙겨도 계획한 야외 코스를 즐긴다", "박물관이나 실내 체험 코스로 바꾼다"],
-      ["여행 예산을 쓸 때 더 중요하게 보는 것은?", "특별한 숙소와 기억에 남을 경험에 투자", "무료 명소와 알뜰한 로컬 맛집을 찾아보기"],
-      ["여행 중 마음에 드는 것을 발견하면?", "오늘을 위한 기념품이나 체험을 망설임 없이", "가격과 후기를 살펴보고 만족스러운 선택을"],
-      ["여행 일정을 짤 때 나다운 방식은?", "동선과 시간을 꼼꼼히 짜서 알차게", "꼭 가고 싶은 곳만 정하고 나머지는 느긋하게"],
-      ["예상보다 일찍 다음 장소에 도착했다면?", "근처 명소를 더 찾아 일정에 넣는다", "좋은 카페나 벤치에서 충분히 쉬어 간다"],
-      ["여행에서 가장 편안한 순간은?", "혼자 걷고 생각을 정리하는 조용한 시간", "함께 온 사람과 추억을 나누는 시간"],
-      ["낯선 동네에 도착하면 나는?", "내 페이스대로 골목을 탐색한다", "현지인에게 말을 걸어 숨은 곳을 추천받는다"],
+      { text: "수많은 고민 끝에 드디어 여행할 지역을 정했다! 그런데 가보고 싶은 곳이 너무 많다! 하루 동안 모든 곳을 둘러보기는 어려울 것 같은데… 어떤 선택을 할까?", options: [
+        ["현실적으로 체력과 비용, 이동 거리까지 고려해야지!", "하루에 1~2곳 정도만 방문하며 여유로운 여행을 계획한다."],
+        ["언제 또 와보겠어! 오랜만에 떠난 여행인 만큼", "가보고 싶었던 곳은 최대한 모두 일정에 넣는다."],
+      ] },
+      { text: "이제 숙소만 예약하면 여행준비 끝! 숙소 탭에서 망설임 없이 홈페이지 연결을 해 예약까지 마친 곳은?", options: [
+        ["숙소에서까지도 제대로 힐링해야지!", "객실 안에 자쿠지와 아름다운 야경을 즐길 수 있는 고급 온천 호텔"],
+        ["잠만 잘 수 있으면 충분!", "교통이 편리한 역 근처의 깔끔하고 모던한 비즈니스호텔"],
+      ] },
+      { text: "드디어 여행지에 도착했다! 계획보다 일찍 도착해서 시간이 조금 남아 있다. 본격적인 여행을 시작하기 전, 어디로 향할까?", options: [
+        ["여행지에 왔으니 일단 밖으로 나가보자!", "탁 트인 풍경과 거리의 분위기를 느끼며 주변을 둘러본다."],
+        ["일단 실내에서 여유롭게 시작하자!", "근처의 아늑한 카페나 관광안내소에서 팸플릿을 둘러본다."],
+      ] },
+      { text: "열심히 여행지를 돌아다니다 보니 어느덧 오후 4시! 슬슬 다리가 무거워지기 시작한다. 아직 가보지 못한 곳들이 남아 있는데… 어떻게 할까?", options: [
+        ["아직 가봐야 할 남은 장소들이 나를 기다린다!", "조금 힘들더라도 계획했던 장소들을 최대한 둘러본다."],
+        ["이 정도면 만족스럽지!", "잠시 쉬면서 체력을 회복한 뒤 느긋하게 저녁을 즐기러 간다."],
+      ] },
+      { text: "저녁 식사 시간! 식당에서 우연히 옆 테이블의 여행객과 이야기를 나누게 되는데, 알고 보니 내일 방문할 여행지도 같다고 한다! 함께 여행하자는 제안을 받는다면 어떻게 할까?", options: [
+        ["혼자만의 시간을 즐기러 온 여행이니까!", "대화는 즐거웠지만, 내일은 원래 계획대로 혼자 여행하겠다고 정중히 거절한다."],
+        ["이것도 특별한 인연!", "새로운 사람과 함께라면 더 즐거울 것 같아 흔쾌히 약속을 잡는다."],
+      ] },
+      { text: "어느덧 시간은 저녁 7시! 해가 지기 시작하고, 낮과는 또 다른 분위기의 여행지가 눈앞에 펼쳐진다. 남은 저녁 시간을 어떻게 보낼까?", options: [
+        ["밤의 여행지도 놓칠 수 없지!", "밖으로 나가 은은한 밤조명을 따라 거리를 거닐며 또 다른 여행지의 매력을 느낀다."],
+        ["이제는 정말 휴식할 시간!", "숙소에서 은은한 조명을 켜놓고 창밖 풍경을 감상하며 오늘 찍은 사진을 정리한다."],
+      ] },
+      { text: "여행의 마지막을 장식할 기념품 쇼핑 시간! 소도시 청년들이 운영하는 감성 기념품 숍에 들렀는데, 마음에 드는 핸드메이드 소품을 보았다!", options: [
+        ["‘이 지역에서만 살 수 있는 추억이니까!’", "소중한 사람들과 내 몫까지 아낌없이 구매한다."],
+        ["‘실용적인지 먼저 보자!’", "정말 필요한 물건인지 신중하게 고민 후 필요한 것만 구매한다."],
+      ] },
+      { text: "여행을 마치고 드디어 집으로 돌아왔다! 문득 이번 여행의 추억을 기록하고 싶어져서 SNS에 여행 후기를 남기려고 하는데… 어떤 방식으로 기록할까?", options: [
+        ["좋은 곳은 많은 사람들과 공유해야지!", "방문했던 장소와 맛집, 여행 꿀팁까지 정리해서 추천 글을 올리고, 달리는 댓글에도 열심히 답변한다."],
+        ["이번 여행은 잊지 못할 추억이 되었다!", "사진 몇 장과 함께 그날의 감정을 일기 쓰듯 적는다."],
+      ] },
     ],
-    titles: {
-      O: ["바람을 따라 걷는", "안으로 깊이 들어가는"],
-      F: ["경험에 아낌없는", "알뜰한 발견을 즐기는"],
-      E: ["알차게 채워 가는", "느긋하게 머무는"],
-      S: ["혼자만의 리듬을 찾는", "함께 나누며 즐기는"],
+    letters: { O: "실외형", I: "실내형", F: "플렉스형", B: "가성비형", E: "실속·알찬형", R: "여유형", S: "고독형", C: "교류형" },
+    types: {
+      OFES: ["홀로 야생을 누비는 탐험가", "누구보다 적극적으로 움직이며 세상의 다양한 자연과 랜드마크를 정복하는 열정적인 여행자입니다! 최고의 장비와 숙소에 아낌없이 투자하며, 혼자만의 속도로 알찬 여행을 즐겨요. 타인의 방해 없이 새로운 장소를 탐험하고 자신만의 성취감을 쌓는 데서 행복을 느낀답니다."],
+      OFEC: ["에너지 넘치는 액티브 리더", "아낌없는 투자와 넘치는 에너지로 사람들과 함께 다양한 야외 활동을 즐기는 여행자입니다! 핫플레이스 탐방부터 야외 페스티벌, 액티비티 투어까지 알찬 일정을 적극적으로 소화해요. 새로운 사람들과 어울리며 특별한 경험을 함께 만들어가는 데서 즐거움을 느낀답니다."],
+      OFRS: ["야외에서 낭만을 찾는 휴식가", "아름다운 자연 풍경 속에서 고급스러운 휴식과 여유를 만끽하는 여행자입니다! 전망 좋은 리조트나 자연 속 프리미엄 숙소를 선호하며, 빡빡한 일정 대신 마음이 이끄는 대로 여행을 즐겨요. 타인의 시선에서 벗어나 자연 속에서 나만의 낭만과 여유를 누리는 것을 좋아한답니다."],
+      OFRC: ["낭만 가득한 아웃도어 파티 메이트", "멋진 야외 공간에서 사람들과 어울리며 여유로운 휴식과 특별한 추억을 만드는 여행자입니다! 글램핑과 야외 바비큐, 야외 수영장처럼 분위기 좋은 공간을 찾아다니며 좋은 사람들과 시간을 보내요. 아름다운 풍경과 즐거운 대화 속에서 함께하는 여행의 낭만을 느낀답니다."],
+      OBES: ["가성비까지 챙기는 극강의 배낭여행가", "합리적인 예산으로 최대한 많은 야외 명소를 정복하는 실속형 여행자입니다! 숙소와 소비는 알뜰하게 관리하면서도 꼭 가보고 싶은 자연과 랜드마크는 놓치지 않아요. 빠른 판단력과 철저한 계획으로 자신만의 여행 리스트를 하나씩 채워가는 데서 성취감을 느낀답니다."],
+      OBEC: ["친화력 만렙의 현지 적응자", "합리적인 소비와 풍성한 여행 경험을 모두 놓치고 싶지 않은 여행자입니다! 뚜벅이 투어나 로컬 도보 여행에 적극 참여하며, 게스트하우스에서 만난 사람들과 금방 친해져 새로운 인연을 만들어 가는 것도 즐겨요. 숨겨진 로컬 야외 스팟을 찾아내고, 사람들과 정보를 공유하는 재미로 여행한답니다."],
+      OBRS: ["나만의 속도로 떠나는 유랑자", "자연 속에서 자유롭고 여유로운 시간을 보내며 나만의 여행을 즐기는 여행자입니다! 붐비는 관광지보다는 한적한 공원과 시골 마을, 조용한 해변을 찾아 천천히 거닐어요. 마음에 드는 장소에 오래 머물며 자연의 풍경과 소리에 집중하고, 소박한 여행 속에서 일상의 여유를 되찾습니다."],
+      OBRC: ["소박한 정을 나누는 슬로우 여행자", "자연 속에서 느긋한 시간을 보내며 새로운 사람들과 소소한 인연을 만들어가는 여행자입니다! 정해진 일정에 얽매이기보다 마음에 드는 장소에 오래 머물며 주변 풍경을 즐깁니다. 우연히 만난 사람들과 이야기를 나누고, 소박한 여행 속에서 따뜻한 추억을 쌓는 것을 좋아해요."],
+      IFES: ["프라이빗 공간의 탐미가", "세련된 실내 명소와 고급스러운 공간을 혼자만의 여유 속에서 즐기는 여행자입니다! 프라이빗 갤러리와 럭셔리 호텔, 수준 높은 레스토랑 등을 찾아다니며 취향에 맞는 문화와 미식 경험을 누립니다. 누구에게도 방해받지 않는 독립적인 시간 속에서 자신만의 특별한 여행을 완성해요."],
+      IFEC: ["고급스러운 핫플 컬렉터", "세련된 실내 명소와 트렌디한 핫플레이스를 사람들과 함께 즐기는 여행자입니다! 유명 레스토랑과 감성 카페, 쇼핑몰과 뮤지컬 공연까지 취향에 맞는 장소를 적극적으로 찾아다닙니다. 새로운 사람들과 어울리며 멋진 공간에서 특별한 추억과 사진을 남기는 것을 좋아해요."],
+      IFRS: ["럭셔리 휴양 마스터", "고급스러운 실내 공간에서 온전히 자신만의 휴식과 여유를 즐기는 여행자입니다! 5성급 호텔과 프라이빗 스파, 조용한 라운지 등 편안한 서비스를 누릴 수 있는 공간을 선호해요. 바쁜 일정보다는 여유로운 휴식을 중요하게 생각하며, 나에게 집중하는 시간에서 행복을 느낀답니다."],
+      IFRC: ["라운지 감성 낭만주의자", "아늑하고 분위기 좋은 실내 공간에서 사람들과 여유로운 시간을 보내는 여행자입니다! 전망 좋은 라운지와 감각적인 카페, 프라이빗 파티룸 등 취향에 맞는 공간을 찾아다닙니다. 많은 관광지를 돌아다니기보다는 좋은 사람들과 편안하게 대화하며 특별한 추억을 만드는 여행을 좋아해요."],
+      IBES: ["알뜰한 도심 문화 탐험가", "합리적인 소비로 도심 곳곳의 문화와 실내 명소를 알차게 즐기는 여행자입니다! 숙소에는 꼭 필요한 만큼만 지출하고, 남은 예산으로 전시회와 독립서점, 숨겨진 카페 등을 탐방해요. 무료 미술관과 로컬 도서관처럼 알찬 공간을 꼼꼼하게 찾아다니며 나만의 여행을 즐긴답니다."],
+      IBEC: ["게스트하우스 거실의 사랑방 손님", "합리적인 비용으로 다양한 실내 명소를 즐기며 새로운 사람들과 어울리는 여행자입니다! 가성비 좋은 게스트하우스와 아기자기한 로컬 카페를 찾아다니며 여행 중 만난 사람들과 자연스럽게 친해져요. 서로 유용한 여행 정보를 나누고 숨겨진 명소를 발견하며 알뜰하고 풍성한 여행을 만들어갑니다."],
+      IBRS: ["아늑한 쉼을 찾아가는 휴식가", "소박하고 편안한 실내 공간에서 혼자만의 여유를 즐기는 여행자입니다! 북카페와 조용한 찻집, 아늑한 숙소 등을 찾아 책을 읽거나 음악을 들으며 시간을 보내요. 화려한 소비나 빡빡한 일정 대신 느긋하게 시간을 보내며 바깥세상의 소음에서 벗어나 마음의 평온을 누리는 여행을 좋아해요."],
+      IBRC: ["소소한 순간을 함께 나누는 행복 수집가", "편안하고 아늑한 공간에서 사람들과 소소한 행복을 나누는 여행자입니다! 부담 없이 머물 수 있는 가성비 좋은 카페와 실내 공간을 찾아 마음 맞는 사람들과 담소를 즐깁니다. 거창한 계획이나 특별한 소비보다는 함께하는 순간의 소중함을 느끼며 따뜻한 추억을 만들어가는 것을 좋아해요."],
     },
-    title: "{a} {b} 여행자",
-    traits: [
-      ["바깥 풍경과 자연 속에서 에너지를 얻고", "전시와 실내 공간에서 새로운 이야기를 발견하고"],
-      ["마음에 드는 경험에는 기꺼이 투자하며", "합리적인 선택 속에서 여행의 즐거움을 찾고"],
-      ["동선을 알차게 채워 많은 것을 경험하고", "마음에 드는 곳에 머물며 여유를 누리고"],
-      ["혼자만의 속도로 차분히 여행하는", "사람들과 감상을 나누며 추억을 만드는"],
-    ],
-    traitJoiner: " ",
-    describe: "당신은 {traits} 여행자예요. 계획과 취향에 꼭 맞는 장소를 찾아 나만의 로컬 여행을 즐겨보세요.",
+    tie: {
+      lean: "1:1 동점 · 나머지 답변 전체의 성향(활동형 O·F·C / 휴식형 I·B·S)을 따랐어요",
+      last: "1:1 동점 · 나머지 답변도 반반이라 여행 중 실제 선택(Q{q})을 따랐어요",
+      early: "1:1 동점 · 실속·알찬형(E)답게 처음 고른 답(Q{q})을 따랐어요",
+      late: "1:1 동점 · 여유형(R)답게 나중에 고른 답(Q{q})을 따랐어요",
+    },
   },
   en: {
+    intro: [
+      "That sweet feeling of freedom after work never lasts long. Crowded trains, endless queues at the ticket gates, and stiff shoulders and neck from sitting at a desk all day... By the time you finally get home, your fridge is practically empty, and it's already dark outside.",
+      "Lately, the daily routine has been leaving you feeling exhausted, both physically and mentally. Sometimes, you just wish you could leave everything behind and escape somewhere far away!",
+      "\"This time, I'm really going to take some time for myself!\"",
+      "With that thought, you decide it's time for a relaxing getaway. Excitedly, you visit the LOCUS website and start looking for a destination that's just right for you. So, what kind of traveler are you? Let's find out!",
+    ],
     questions: [
-      ["Which scenery draws you in more on a trip?", "A walk along coastal or forest trails in the wind and sun", "Indoor spaces where you can focus on exhibits and stories"],
-      ["Rain is in the forecast. What's your plan?", "Grab an umbrella and stick to the outdoor route", "Switch to museums or indoor activities"],
-      ["What matters more when you spend your travel budget?", "A special stay and experiences to remember", "Free sights and great-value local eateries"],
-      ["You find something you love on the road. You…", "go for the souvenir or experience without hesitation", "check prices and reviews to make a choice you're happy with"],
-      ["How do you plan your itinerary?", "Map out routes and times to make the most of every hour", "Pick only the must-sees and keep the rest relaxed"],
-      ["You reach your next stop earlier than expected. You…", "look for nearby sights to add to the plan", "take a good long break at a café or bench"],
-      ["Your most comfortable moment while traveling?", "Quiet time walking alone and sorting my thoughts", "Time sharing memories with my travel companions"],
-      ["You arrive in an unfamiliar neighborhood. You…", "explore the alleys at your own pace", "chat with locals to get hidden recommendations"],
+      { text: "After lots of consideration, you've finally chosen your travel destination! But there's one problem: there are so many places you want to visit! You probably can't fit them all into one day. What would you do?", options: [
+        ["I should be realistic and consider my energy, budget, and travel distances!", "I'd plan a relaxed itinerary with just one or two places to visit each day."],
+        ["Who knows when I'll get the chance to visit again!", "Since I'm already here, I'd squeeze as many places as possible into my itinerary."],
+      ] },
+      { text: "All that's left is booking your accommodation! Which place would you book without a second thought?", options: [
+        ["My accommodation should be part of the experience, too!", "A luxurious hot spring hotel with an in-room jacuzzi and beautiful night views."],
+        ["As long as I have a comfortable place to sleep, I'm good!", "A clean, modern business hotel near a train station with convenient transport connections."],
+      ] },
+      { text: "You've finally arrived at your destination! You're a little earlier than expected, so you have some free time before starting your itinerary. Where would you go first?", options: [
+        ["I'm here to travel, so let's head outside!", "I'd explore the neighborhood, taking in the open scenery and the local atmosphere."],
+        ["I'd rather ease into the day indoors!", "I'd find a cozy café nearby or stop by the tourist information center to browse some travel brochures."],
+      ] },
+      { text: "After exploring all day, you look at the time and realize it's already 4 PM! Your legs are starting to feel tired, but there are still places on your itinerary you haven't visited. What would you do?", options: [
+        ["There are still so many places left to see!", "Even if I'm a little tired, I'd push through and visit as many of my planned destinations as possible."],
+        ["I've had a pretty great day already!", "I'd take a break, recharge, and enjoy a leisurely evening and dinner."],
+      ] },
+      { text: "It's dinnertime! You strike up a conversation with fellow travelers sitting at the next table. It turns out they're planning to visit the same place as you tomorrow! They invite you to join them. What would you do?", options: [
+        ["I came on this trip to enjoy some time on my own!", "I'd thank them for the lovely conversation but politely explain that I'll stick to my original solo travel plans tomorrow."],
+        ["What a fun coincidence!", "Traveling with someone new could make the experience even more exciting. I'd happily accept their invitation."],
+      ] },
+      { text: "It's already 7 PM. The sun is beginning to set, and the destination looks completely different from how it did during the day. How would you spend the rest of your evening?", options: [
+        ["I don't want to miss out on the nighttime scenery!", "I'd head outside and stroll through streets glowing with soft lights, discovering another side of the destination."],
+        ["It's finally time to relax!", "I'd unwind at my accommodation with some soft lighting, enjoy the view outside my window, and organize the photos I took during the day."],
+      ] },
+      { text: "It's time to pick up some souvenirs before heading home! You stop by a charming shop run by local young creatives and spot a beautiful handmade item. What would you do?", options: [
+        ["\"It's a special memory I can only find here!\"", "I'd happily treat myself and buy gifts for the people I care about, too."],
+        ["\"Let's think about whether I'll actually use it first!\"", "I'd carefully consider its practicality and only buy what I really need."],
+      ] },
+      { text: "Your trip is finally over, and you're back home! You feel like sharing some memories from your getaway on social media. How would you document your trip?", options: [
+        ["Great places are meant to be shared!", "I'd put together a post featuring the places I visited, local restaurants, and helpful travel tips, then actively reply to comments."],
+        ["This trip has become a memory I'll treasure forever!", "I'd share a few photos along with a personal reflection, almost like a diary entry."],
+      ] },
     ],
-    titles: {
-      O: ["Breeze-Chasing", "Deep-Diving"],
-      F: ["Experience-Loving", "Bargain-Hunting"],
-      E: ["Itinerary-Packing", "Slow-Lingering"],
-      S: ["Solo-Rhythm", "Shared-Moment"],
+    letters: { O: "Outdoors", I: "Indoors", F: "Luxury lover", B: "Budget-conscious", E: "Activity-packed", R: "Relaxed pace", S: "Solo traveler", C: "Social traveler" },
+    types: {
+      OFES: ["The Solo Wilderness Explorer", "An adventurous traveler who loves staying active and conquering the world's natural wonders and iconic landmarks! You're willing to invest in the best equipment and accommodations, while enjoying a fulfilling trip at your own pace. You find happiness in exploring new places independently, free from distractions, and gaining a sense of personal achievement along the way."],
+      OFEC: ["The Energetic Adventure Leader", "An energetic traveler who loves investing in unforgettable experiences and enjoying a variety of outdoor activities with others! From exploring popular attractions and attending outdoor festivals to joining adventure tours, you make the most of every itinerary. You find joy in meeting new people and creating special memories together."],
+      OFRS: ["The Romantic Outdoor Escapist", "A traveler who enjoys luxurious relaxation and peaceful moments surrounded by beautiful natural scenery! You prefer scenic resorts and premium accommodations nestled in nature, choosing to follow your mood rather than stick to a packed itinerary. You love escaping the expectations of others and enjoying your own romantic moments of peace and freedom in nature."],
+      OFRC: ["The Romantic Outdoor Socializer", "A traveler who loves relaxing in beautiful outdoor settings and making special memories with others! You seek out atmospheric places such as glamping sites, outdoor barbecue spots, and open-air swimming pools, where you can spend quality time with good company. You find the romance of traveling together in beautiful scenery and enjoyable conversations."],
+      OBES: ["The Ultimate Budget Backpacker", "A practical traveler who wants to explore as many outdoor attractions as possible while staying within a reasonable budget! You keep accommodation and everyday expenses affordable without missing out on the natural wonders and landmarks you've always wanted to visit. You enjoy the sense of achievement that comes from carefully planning your trip and checking off each destination on your travel list."],
+      OBEC: ["The Friendly Local Explorer", "A traveler who wants to enjoy a wealth of experiences without overspending! You actively join walking tours and local excursions, and you quickly make friends with people you meet at hostels. You enjoy discovering hidden outdoor spots and sharing useful travel tips and information with others."],
+      OBRS: ["The Free-Spirited Wanderer", "A traveler who enjoys spending peaceful, unhurried time in nature and exploring at your own pace! Rather than visiting crowded tourist attractions, you prefer quiet parks, rural villages, and secluded beaches. You love staying longer in places that catch your eye, taking in the scenery and sounds of nature, and rediscovering the simple pleasures of everyday life through travel."],
+      OBRC: ["The Easygoing Social Traveler", "A traveler who enjoys taking things slow in nature while making warm connections with new people! Rather than following a fixed schedule, you prefer spending extra time in places you like and enjoying the surrounding scenery. You love striking up conversations with people you meet along the way and creating heartwarming memories through simple travel experiences."],
+      IFES: ["The Private Space Connoisseur", "A traveler who enjoys sophisticated indoor attractions and luxurious spaces in peaceful solitude! You seek out private galleries, luxury hotels, and fine-dining restaurants to enjoy cultural and culinary experiences that match your personal taste. You love creating a special travel experience of your own, with plenty of independent time and no interruptions."],
+      IFEC: ["The Luxury Hotspot Collector", "A traveler who loves exploring stylish indoor attractions and trendy hotspots with others! From popular restaurants and aesthetic cafés to shopping malls and musical performances, you actively seek out places that match your taste. You enjoy meeting new people, visiting beautiful spaces, and capturing special memories and photos together."],
+      IFRS: ["The Luxury Retreat Master", "A traveler who finds true happiness in enjoying personal relaxation and comfort in luxurious indoor spaces! You prefer places that offer exceptional service and comfort, such as five-star hotels, private spas, and peaceful lounges. Rather than following a busy schedule, you prioritize taking things slow and focusing on yourself."],
+      IFRC: ["The Lounge-Loving Romantic", "A traveler who enjoys spending relaxed, quality time with others in cozy and stylish indoor spaces! You seek out places that suit your taste, such as lounges with beautiful views, aesthetic cafés, and private party rooms. Rather than rushing around to visit numerous attractions, you prefer having comfortable conversations and making special memories with good company."],
+      IBES: ["The Budget-Friendly Urban Culture Explorer", "A traveler who enjoys discovering urban culture and indoor attractions while keeping expenses reasonable! You spend only what you need on accommodation and use the rest of your budget to explore exhibitions, independent bookstores, and hidden cafés. You enjoy carefully finding worthwhile places, such as free art museums and local libraries, and making the most of your trip."],
+      IBEC: ["The Friendly Guesthouse Socializer", "A traveler who enjoys exploring various indoor attractions on a budget while connecting with new people! You seek out affordable guesthouses and charming local cafés, naturally becoming friends with people you meet along the way. You enjoy exchanging useful travel tips, discovering hidden attractions together, and creating a fulfilling travel experience without spending too much."],
+      IBRS: ["The Cozy Retreat Seeker", "A traveler who enjoys peaceful moments alone in simple and comfortable indoor spaces! You seek out book cafés, quiet teahouses, and cozy accommodations where you can read a book or listen to music. Rather than spending lavishly or following a packed itinerary, you prefer taking your time, escaping the noise of the outside world, and finding peace of mind."],
+      IBRC: ["The Collector of Little Joys", "A traveler who enjoys sharing small moments of happiness with others in comfortable and cozy spaces! You seek out affordable cafés and welcoming indoor spaces where you can relax and chat with like-minded people. Rather than making grand plans or spending extravagantly, you value the little moments spent together and love creating warm, lasting memories."],
     },
-    title: "The {a}, {b} Traveler",
-    traits: [
-      ["You draw energy from outdoor scenery and nature,", "You discover new stories in exhibitions and indoor spaces,"],
-      ["gladly invest in experiences you love,", "find joy in smart, sensible choices,"],
-      ["pack your route to see as much as you can,", "linger where you like and take it slow,"],
-      ["and travel calmly at your own pace.", "and make memories by sharing them with others."],
-    ],
-    traitJoiner: " ",
-    describe: "{traits} Find places that match your plans and taste, and enjoy a local trip of your own.",
+    tie: {
+      lean: "1:1 tie · decided by the overall lean of your other answers (active O·F·C / restful I·B·S)",
+      last: "1:1 tie · your other answers were split too, so your in-the-moment choice (Q{q}) decided",
+      early: "1:1 tie · as an activity-packed (E) traveler, your first answer (Q{q}) decided",
+      late: "1:1 tie · as a relaxed-pace (R) traveler, your later answer (Q{q}) decided",
+    },
   },
   ja: {
+    intro: [
+      "仕事終わりの解放感も束の間。人でいっぱいの電車、改札前に続く長い列、一日中のデスクワークで凝り固まった肩や首……。やっと家に帰り着いたと思ったら、冷蔵庫は空っぽで、窓の外はすっかり暗くなっていた。",
+      "毎日繰り返される忙しい日々に、心も体も疲れ気味の今日この頃。ふと、すべてを忘れてどこかへ旅に出たくなることはありませんか？",
+      "「今度こそ、自分のための時間を過ごそう！」",
+      "そう決心して、癒やしの旅を計画することにしたあなた。ワクワクしながらLOCUSのウェブサイトにアクセスし、自分にぴったりの旅行先を探し始めます。さて、あなたはどんな旅を楽しむタイプでしょうか？",
+    ],
     questions: [
-      ["旅先で心惹かれる風景は？", "風と日差しを感じる海辺や森の道の散歩", "展示や物語に浸れる屋内空間"],
-      ["雨の予報が出ている日、あなたの旅は？", "傘を持ってでも予定どおり屋外コースを楽しむ", "博物館や屋内体験のコースに変更する"],
-      ["旅の予算で大事にするのは？", "特別な宿や思い出に残る体験に投資", "無料の名所やお得な地元グルメを探す"],
-      ["旅先で気に入ったものを見つけたら？", "記念品や体験に迷わずお金を使う", "値段や口コミを見て納得できるものを選ぶ"],
-      ["旅程を立てるときのあなたらしい方法は？", "動線と時間をきっちり組んで充実させる", "行きたい所だけ決めて、あとはのんびり"],
-      ["予定より早く次の場所に着いたら？", "近くの名所を探して予定に加える", "素敵なカフェやベンチでゆっくり休む"],
-      ["旅でいちばんくつろげる瞬間は？", "ひとりで歩きながら考えを整理する静かな時間", "一緒に来た人と思い出を分かち合う時間"],
-      ["知らない町に着いたら、あなたは？", "自分のペースで路地を探検する", "地元の人に話しかけて穴場を教えてもらう"],
+      { text: "いろいろ悩んだ末、ついに旅行先が決定！でも、行ってみたい場所が多すぎる！1日ですべてを回るのは難しそう……。あなたならどうする？", options: [
+        ["体力や予算、移動距離も考えないと！", "1日に訪れる場所は1〜2か所に絞って、ゆったりとした旅行プランを立てる。"],
+        ["次はいつ来られるかわからないし！", "せっかくの旅行だから、行きたい場所はできるだけたくさん予定に入れる。"],
+      ] },
+      { text: "あとは宿を予約すれば旅行の準備は完了！宿泊施設のページを見て、迷わず予約したのはどっち？", options: [
+        ["宿でも思いっきり癒やされたい！", "客室にジャグジーがあり、美しい夜景も楽しめるラグジュアリーな温泉ホテル。"],
+        ["寝られれば十分！", "交通アクセスが便利な駅近くの、清潔でモダンなビジネスホテル。"],
+      ] },
+      { text: "ついに旅行先に到着！予定より早く着いたので、旅を本格的に始めるまで少し時間がある。まずどこへ向かう？", options: [
+        ["せっかく旅行に来たんだから、まずは外へ！", "開放的な景色や街の雰囲気を感じながら、周辺を散策する。"],
+        ["まずは屋内でのんびりスタート！", "近くのおしゃれなカフェや観光案内所で、パンフレットを見ながら過ごす。"],
+      ] },
+      { text: "旅行先をあちこち巡っているうちに、気づけば午後4時！そろそろ足も疲れてきたけれど、まだ行けていない場所が残っている……。あなたならどうする？", options: [
+        ["まだ行きたい場所が残っている！", "少しくらい疲れていても、予定していたスポットをできるだけ巡る。"],
+        ["今日はもう十分楽しんだかな！", "少し休んで体力を回復してから、ゆっくり夕食を楽しむ。"],
+      ] },
+      { text: "夕食の時間！レストランで偶然隣の席の旅行者と話すことに。なんと、明日行く予定の場所も同じだそう！一緒に観光しませんか？と誘われたら、どうする？", options: [
+        ["今回はひとりの時間を楽しむための旅行だから！", "お話しできて楽しかったけれど、明日は予定どおりひとりで観光すると丁寧に伝える。"],
+        ["これも何かのご縁！", "新しい人と一緒ならもっと楽しくなりそう！喜んで一緒に行く約束をする。"],
+      ] },
+      { text: "気づけば午後7時。日が暮れ始め、昼間とはまた違った雰囲気の街並みが広がっている。残りの夜の時間をどう過ごす？", options: [
+        ["夜の街も見逃せない！", "外に出て、やさしい光に照らされた街並みを散策しながら、昼間とは違う旅先の魅力を楽しむ。"],
+        ["そろそろ本格的に休む時間！", "宿で落ち着いた照明をつけ、窓の外の景色を眺めながら、今日撮った写真を整理する。"],
+      ] },
+      { text: "旅の最後を飾るお土産選び！地元の若いクリエイターが営む、おしゃれな雑貨店に立ち寄ったところ、素敵なハンドメイド雑貨を発見！あなたならどうする？", options: [
+        ["「ここでしか買えない旅の思い出だし！」", "大切な人へのお土産と自分用に、思い切って購入する。"],
+        ["「まずは本当に使うものか考えよう！」", "実用性があるかどうかをじっくり考えて、必要なものだけ購入する。"],
+      ] },
+      { text: "旅行を終えて、ついに帰宅！今回の旅の思い出をSNSに投稿したくなった。あなたならどんなふうに記録する？", options: [
+        ["素敵な場所はみんなにもシェアしなくちゃ！", "訪れたスポットやグルメ、旅行のお役立ち情報をまとめて投稿し、コメントにも積極的に返信する。"],
+        ["今回の旅は忘れられない思い出になった！", "写真を数枚添えて、その日の気持ちを日記のように綴る。"],
+      ] },
     ],
-    titles: {
-      O: ["風を追いかける", "奥深く入り込む"],
-      F: ["体験を惜しまない", "お得な発見を楽しむ"],
-      E: ["予定をぎっしり詰める", "のんびり過ごす"],
-      S: ["自分のリズムを大切にする", "分かち合って楽しむ"],
+    letters: { O: "屋外派", I: "屋内派", F: "贅沢派", B: "コスパ重視派", E: "充実派", R: "のんびり派", S: "ひとり時間派", C: "交流派" },
+    types: {
+      OFES: ["ひとりで大自然を駆け巡る冒険家", "誰よりも積極的に行動し、さまざまな自然の絶景や名所を巡る情熱的な旅行者です！最高の装備や宿泊施設には惜しみなく投資し、自分だけのペースで充実した旅を楽しみます。誰にも邪魔されずに新しい場所を探索し、自分だけの達成感を積み重ねることに幸せを感じます。"],
+      OFEC: ["エネルギッシュなアクティブリーダー", "惜しみない投資とあふれるエネルギーで、仲間と一緒にさまざまなアウトドアアクティビティを楽しむ旅行者です！話題のスポット巡りから屋外フェス、アクティビティツアーまで、充実したスケジュールを積極的にこなします。新しい人々と交流しながら、特別な体験を一緒につくり上げることに喜びを感じます。"],
+      OFRS: ["アウトドアでロマンを見つける癒やし系旅行者", "美しい自然の景色に囲まれながら、贅沢な休息とゆったりとした時間を満喫する旅行者です！眺めの良いリゾートや自然の中にある上質な宿泊施設を好み、ぎっしり詰まった予定よりも、そのときの気分に合わせて旅を楽しみます。周囲の目を気にせず、自然の中で自分だけのロマンチックな時間と心のゆとりを満喫するのが好きです。"],
+      OFRC: ["ロマンあふれるアウトドアパーティーメイト", "素敵な屋外空間で人々と交流しながら、のんびりとした休息と特別な思い出をつくる旅行者です！グランピングや屋外バーベキュー、屋外プールなど、雰囲気の良い場所を訪れ、気の合う仲間と楽しい時間を過ごします。美しい景色と弾む会話の中で、誰かと一緒に旅する楽しさやロマンを感じます。"],
+      OBES: ["コスパ重視の究極のバックパッカー", "限られた予算の中で、できるだけ多くのアウトドアスポットを巡りたい実用派の旅行者です！宿泊費や日々の出費は賢く抑えながらも、ぜひ訪れたい自然スポットや名所は見逃しません。素早い判断力と綿密な計画で、自分だけの旅行リストを一つずつ達成していくことに喜びを感じます。"],
+      OBEC: ["コミュ力抜群のローカルなじみ上手", "無理のない予算で、充実した旅行体験も楽しみたい旅行者です！徒歩ツアーやローカル散策に積極的に参加し、ゲストハウスで出会った人ともすぐに仲良くなって、新しいつながりをつくるのが得意です。隠れたローカルのアウトドアスポットを見つけたり、みんなと旅の情報を共有したりすることを楽しみます。"],
+      OBRS: ["自分のペースで旅する自由な放浪者", "自然の中で自由気ままに、ゆったりとした時間を過ごしながら自分らしい旅を楽しむ旅行者です！人混みの多い観光地よりも、静かな公園や田舎町、落ち着いたビーチを訪れて、のんびり散策することを好みます。気に入った場所には長く滞在し、自然の景色や音に耳を傾けながら、素朴な旅を通して日常のゆとりを取り戻します。"],
+      OBRC: ["人との温かいつながりを楽しむスロー旅行者", "自然の中でのんびり過ごしながら、新しい人々とのささやかな出会いを楽しむ旅行者です！決まったスケジュールに縛られず、気に入った場所に長く滞在して、周囲の景色を楽しみます。旅先で偶然出会った人と会話を交わし、素朴な旅の中で心温まる思い出をつくることが好きです。"],
+      IFES: ["プライベート空間を愛する審美家", "洗練された屋内スポットや高級感のある空間を、ひとりの時間の中でじっくり楽しむ旅行者です！プライベートギャラリーや高級ホテル、上質なレストランなどを訪れ、自分の好みに合った文化やグルメを満喫します。誰にも邪魔されない自由な時間の中で、自分だけの特別な旅を完成させます。"],
+      IFEC: ["ラグジュアリーな人気スポットコレクター", "洗練された屋内スポットやトレンドの人気スポットを、仲間と一緒に楽しむ旅行者です！話題のレストランやおしゃれなカフェ、ショッピングモール、ミュージカル公演まで、自分の好みに合った場所を積極的に探して訪れます。新しい人々と交流しながら、素敵な空間で特別な思い出や写真を残すことが好きです。"],
+      IFRS: ["ラグジュアリーリゾートの達人", "高級感のある屋内空間で、自分だけの休息とゆったりとした時間を心ゆくまで楽しむ旅行者です！五つ星ホテルやプライベートスパ、静かなラウンジなど、快適なサービスを受けられる場所を好みます。忙しいスケジュールよりも、ゆっくりと休むことを大切にし、自分自身と向き合う時間に幸せを感じます。"],
+      IFRC: ["ラウンジの雰囲気を愛するロマンチスト", "居心地が良く、おしゃれな屋内空間で人々とゆったりした時間を過ごす旅行者です！眺めの良いラウンジやセンスの良いカフェ、プライベートパーティールームなど、自分の好みに合った空間を探して訪れます。たくさんの観光地を巡るよりも、気の合う仲間とリラックスして会話を楽しみ、特別な思い出をつくる旅が好きです。"],
+      IBES: ["コスパ重視の都市文化探検家", "無理のない予算で、街中の文化スポットや屋内施設を充実して楽しむ旅行者です！宿泊費は必要最低限に抑え、残った予算で展示会や独立系書店、隠れたカフェなどを巡ります。無料の美術館や地域の図書館など、お得で魅力的な場所を丁寧に探しながら、自分らしい旅を楽しみます。"],
+      IBEC: ["ゲストハウスのリビングを彩る人気者", "リーズナブルな費用でさまざまな屋内スポットを楽しみながら、新しい人々との交流も満喫する旅行者です！コスパの良いゲストハウスやかわいらしいローカルカフェを訪れ、旅先で出会った人たちと自然に仲良くなります。お互いに役立つ旅行情報を交換したり、隠れた名所を一緒に発見したりしながら、賢く充実した旅をつくり上げます。"],
+      IBRS: ["心地よい安らぎを求める癒やし系旅行者", "素朴で居心地の良い屋内空間で、ひとりの時間をゆったりと楽しむ旅行者です！ブックカフェや静かな喫茶店、落ち着いた宿泊施設などを訪れ、本を読んだり音楽を聴いたりしながら時間を過ごします。華やかな出費や忙しいスケジュールよりも、のんびりとした時間を大切にし、外の喧騒から離れて心の平穏を感じられる旅を好みます。"],
+      IBRC: ["小さな幸せを分かち合う思い出コレクター", "居心地の良い空間で、人々とささやかな幸せを分かち合う旅行者です！気軽に過ごせるリーズナブルなカフェや屋内スポットを訪れ、気の合う人たちと楽しくおしゃべりすることを好みます。大げさな計画や特別な出費よりも、一緒に過ごす何気ない瞬間を大切にし、心温まる思い出をつくることが好きです。"],
     },
-    title: "{a}、{b}旅行者",
-    traits: [
-      ["屋外の風景や自然からエネルギーをもらい、", "展示や屋内空間で新しい物語を見つけ、"],
-      ["気に入った体験には惜しまず投資し、", "賢い選択の中に旅の楽しさを見つけ、"],
-      ["ルートを充実させて多くを体験し、", "気に入った場所でゆったりと過ごし、"],
-      ["自分のペースで静かに旅する", "人と感想を分かち合い思い出を作る"],
-    ],
-    traitJoiner: "",
-    describe: "あなたは{traits}旅行者です。計画や好みにぴったりの場所を見つけて、自分だけのローカル旅を楽しんでください。",
+    tie: {
+      lean: "1:1の同点 · ほかの回答全体の傾向（アクティブ O·F·C／のんびり I·B·S）で決定しました",
+      last: "1:1の同点 · ほかの回答も半々だったため、旅の途中の実際の選択（Q{q}）で決定しました",
+      early: "1:1の同点 · 充実派（E）らしく、最初に選んだ答え（Q{q}）で決定しました",
+      late: "1:1の同点 · のんびり派（R）らしく、あとで選んだ答え（Q{q}）で決定しました",
+    },
   },
 };

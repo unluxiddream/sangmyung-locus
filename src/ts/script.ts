@@ -12,12 +12,22 @@ interface RegionGroup {
 }
 
 interface Axis {
-  letters: [string, string];
+  letters: [MbtiLetter, MbtiLetter];
+  active: MbtiLetter;
 }
 
 interface Question {
   axis: AxisKey;
-  letters: [string, string];
+  letters: [MbtiLetter, MbtiLetter];
+}
+
+interface AxisResult {
+  axis: AxisKey;
+  letter: MbtiLetter;
+  counts: [number, number];
+  early: number;
+  late: number;
+  tie: "" | "lean" | "last" | "early" | "late";
 }
 
 interface NavGroup {
@@ -59,23 +69,26 @@ const THEME_CLASSES: Record<string, string> = {
   음식: "food",
   자연관광: "nature",
 };
+// 결과 코드 글자 순서: O/I → F/B → E/R → S/C (예: OFES)
+// active: 에너지를 밖으로 쓰는 쪽(밖으로 나가고, 아낌없이 쓰고, 많이 다니고, 사람과 어울림)
 const AXES: Record<AxisKey, Axis> = {
-  OI: { letters: ["O", "I"] },
-  FB: { letters: ["F", "B"] },
-  ER: { letters: ["E", "R"] },
-  SC: { letters: ["S", "C"] },
+  OI: { letters: ["O", "I"], active: "O" },
+  FB: { letters: ["F", "B"], active: "F" },
+  ER: { letters: ["E", "R"], active: "E" },
+  SC: { letters: ["S", "C"], active: "C" },
 };
 
 // 질문 문구는 i18n.ts의 MBTI[언어].questions에 같은 순서로 있음
+// letters: [A 보기, B 보기]가 각각 어느 글자인지 (질문.md의 괄호 표기 그대로)
 const QUESTIONS: Question[] = [
-  { axis: "OI", letters: ["O", "I"] },
-  { axis: "OI", letters: ["O", "I"] },
+  { axis: "ER", letters: ["R", "E"] },
   { axis: "FB", letters: ["F", "B"] },
-  { axis: "FB", letters: ["F", "B"] },
-  { axis: "ER", letters: ["E", "R"] },
+  { axis: "OI", letters: ["O", "I"] },
   { axis: "ER", letters: ["E", "R"] },
   { axis: "SC", letters: ["S", "C"] },
-  { axis: "SC", letters: ["S", "C"] },
+  { axis: "OI", letters: ["O", "I"] },
+  { axis: "FB", letters: ["F", "B"] },
+  { axis: "SC", letters: ["C", "S"] },
 ];
 
 function isRegionKey(value: string | null | undefined): value is RegionKey {
@@ -776,15 +789,16 @@ function renderRandom(): string {
 }
 
 function renderQuestion(question: Question, index: number): string {
-  const [text, ...answers] = MBTI[LANG].questions[index];
-  return `<fieldset class="question"><legend><span>Q${String(index + 1).padStart(2, "0")}</span>${escapeHTML(text)}</legend><div class="question-options">${answers.map((answer, answerIndex) => {
+  const { text, options } = MBTI[LANG].questions[index];
+  return `<fieldset class="question"><legend><span>Q${String(index + 1).padStart(2, "0")}</span>${escapeHTML(text)}</legend><div class="question-options">${options.map(([head, body], answerIndex) => {
     const id = `q${index}-${answerIndex}`;
-    return `<div class="answer-option"><input id="${id}" type="radio" name="q${index}" value="${question.letters[answerIndex]}" data-axis="${question.axis}" required><label for="${id}">${escapeHTML(answer)}</label></div>`;
+    return `<div class="answer-option"><input id="${id}" type="radio" name="q${index}" value="${question.letters[answerIndex]}" required><label for="${id}"><strong>${["A", "B"][answerIndex]}. ${escapeHTML(head)}</strong>${escapeHTML(body)}</label></div>`;
   }).join("")}</div></fieldset>`;
 }
 
 function renderMBTI(): string {
   return `${renderHeader("TRAVEL MBTI", t("mbtiTitle"), t("mbtiLead"))}
+    <div class="quiz-story">${MBTI[LANG].intro.map((line) => `<p>${escapeHTML(line)}</p>`).join("")}</div>
     <div class="notice-box">${t("mbtiNotice")}</div>
     <form class="quiz-form" id="mbti-form">${QUESTIONS.map(renderQuestion).join("")}<button class="button quiz-submit" type="submit">${escapeHTML(t("mbtiSubmit"))} <span>↗</span></button></form>
     <section id="mbti-result" aria-live="polite"></section>${renderFooter()}`;
@@ -839,14 +853,32 @@ function renderSupport(): string {
     ${renderFooter()}`;
 }
 
+// Q&A 답변: 글자는 그대로 보여 주고 [이름](https://주소)만 새 창 링크로 바꿈
+function renderFaqAnswer(answer: string): string {
+  const link = /\[([^\]\n]+)\]\((https?:\/\/[^)\s]+)\)/g;
+  let html = "";
+  let last = 0;
+  for (const match of answer.matchAll(link)) {
+    const url = safeURL(match[2]);
+    html += escapeHTML(answer.slice(last, match.index));
+    html += url ? `<a href="${escapeHTML(url)}" target="_blank" rel="noopener noreferrer">${escapeHTML(match[1])}</a>` : escapeHTML(match[0]);
+    last = (match.index ?? 0) + match[0].length;
+  }
+  return html + escapeHTML(answer.slice(last));
+}
+
+// Q&A.md의 [분류] 줄마다 소제목을 달고, 그 아래 질문들을 묶어서 보여 줌
 function renderQna(faq: FaqItem[]): string {
-  const fixed: [UIKey, UIKey][] = [["faq1Q", "faq1A"], ["faq2Q", "faq2A"], ["faq3Q", "faq3A"]];
-  const items = [
-    ...faq.map((item) => [item.question, item.answer]),
-    ...fixed.map(([question, answer]) => [t(question), t(answer)]),
-  ].map(([question, answer]) => `<details class="faq-item"><summary>${escapeHTML(question)}</summary><p>${escapeHTML(answer)}</p></details>`).join("");
+  const groups: { category: string; items: FaqItem[] }[] = [];
+  faq.forEach((item) => {
+    const category = item.category ?? "";
+    const group = groups[groups.length - 1];
+    if (group && group.category === category) group.items.push(item);
+    else groups.push({ category, items: [item] });
+  });
+  const sections = groups.map(({ category, items }) => `<section class="faq-group">${category ? `<h2>${escapeHTML(category)}</h2>` : ""}<div class="faq-list">${items.map((item) => `<details class="faq-item"><summary>${escapeHTML(item.question)}</summary><p>${renderFaqAnswer(item.answer)}</p></details>`).join("")}</div></section>`).join("");
   return `${renderHeader("Q&A", t("faqTitle"), t("faqLead"))}
-    <div class="faq-list">${items}</div>
+    ${sections}
     ${renderFooter()}`;
 }
 
@@ -938,22 +970,41 @@ function renderPlace(index: TravelIndex): string {
   </div>`;
 }
 
-function describeType(type: string): string {
-  const text = MBTI[LANG];
-  const traits = [
-    text.traits[0][type[0] === "O" ? 0 : 1],
-    text.traits[1][type[1] === "F" ? 0 : 1],
-    text.traits[2][type[2] === "E" ? 0 : 1],
-    text.traits[3][type[3] === "S" ? 0 : 1],
-  ];
-  return text.describe.replace("{traits}", traits.join(text.traitJoiner));
+// 여행 MBTI 채점. 축마다 질문이 2개라 1:1 동점이 생길 수 있음. 랜덤 없이 항상 같은 답 → 같은 결과.
+// 1) 한 축에서 같은 글자를 2번 고르면 그 글자.
+// 2) E/R 동점(Q1 ≠ Q4): 나머지 6개 답변에서 활동형(O·F·C)과 휴식형(I·B·S) 중 더 많은 쪽 → E 또는 R.
+//    3:3이면 실제 여행 중 선택인 Q4의 답.
+// 3) O/I, F/B, S/C 동점: 2)까지 정해진 E/R로 어느 질문을 믿을지 정함.
+//    E(실속·알찬형, 계획대로) → 그 축의 앞 질문, R(여유형, 마음 가는 대로) → 그 축의 뒤 질문.
+// 256가지 답 조합에서 16유형이 모두 나오고(유형별 9~23가지), 8개 질문 모두 결과에 영향을 줌.
+function scoreMBTI(answers: MbtiLetter[]): AxisResult[] {
+  const picks = (axis: AxisKey) => QUESTIONS.flatMap((question, index) => question.axis === axis ? [index] : []);
+  const decide = (axis: AxisKey): AxisResult => {
+    const data = AXES[axis];
+    const indexes = picks(axis);
+    const counts = data.letters.map((letter) => indexes.filter((index) => answers[index] === letter).length) as [number, number];
+    const base = { axis, counts, early: indexes[0] + 1, late: indexes[indexes.length - 1] + 1 };
+    if (counts[0] !== counts[1]) return { ...base, letter: data.letters[counts[0] > counts[1] ? 0 : 1], tie: "" };
+    if (axis === "ER") {
+      const activeLetters = Object.values(AXES).map((item) => item.active);
+      const lean = answers.reduce((sum, letter, index) => indexes.includes(index) ? sum : sum + (activeLetters.includes(letter) ? 1 : -1), 0);
+      if (lean !== 0) return { ...base, letter: lean > 0 ? "E" : "R", tie: "lean" };
+      return { ...base, letter: answers[base.late - 1], tie: "last" };
+    }
+    const planner = er.letter === "E";
+    return { ...base, letter: answers[(planner ? base.early : base.late) - 1], tie: planner ? "early" : "late" };
+  };
+  const er = decide("ER");
+  return (Object.keys(AXES) as AxisKey[]).map((axis) => axis === "ER" ? er : decide(axis));
 }
 
-function typeTitle(type: string): string {
-  const { titles, title } = MBTI[LANG];
-  return title
-    .replace("{a}", titles.O[type[0] === "O" ? 0 : 1])
-    .replace("{b}", titles.F[type[1] === "F" ? 0 : 1]);
+function renderAxisResults(results: AxisResult[]): string {
+  const text = MBTI[LANG];
+  return `<ul class="axis-results">${results.map(({ axis, letter, counts, early, late, tie }) => {
+    const sides = AXES[axis].letters.map((side, index) => `<span class="axis-side${side === letter ? " picked" : ""}"><b>${side}</b> ${escapeHTML(text.letters[side])} <em>${counts[index]}</em></span>`);
+    const note = tie ? `<small>${escapeHTML(text.tie[tie].replace("{q}", String(tie === "early" ? early : late)))}</small>` : "";
+    return `<li>${sides.join('<span class="axis-vs">:</span>')}${note}</li>`;
+  }).join("")}</ul>`;
 }
 
 // 점수 계산은 언어와 상관없이 한국어 값(테마, 태그, 이름)을 기준으로 함
@@ -1016,15 +1067,12 @@ function setupMBTI(places: Place[]): void {
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     if (!form.reportValidity()) return;
-    const answers = [...form.querySelectorAll<HTMLInputElement>("input:checked")];
-    const letters = (Object.entries(AXES) as [AxisKey, Axis][]).map(([axis, data]) => {
-      const selected = answers.filter((answer) => answer.dataset.axis === axis).map((answer) => answer.value);
-      const counts = data.letters.map((letter) => selected.filter((item) => item === letter).length);
-      return counts[0] === counts[1] ? selected[0] : data.letters[counts[0] > counts[1] ? 0 : 1];
-    });
-    const type = letters.join("");
+    const answers = QUESTIONS.map((_, index) => form.querySelector<HTMLInputElement>(`input[name="q${index}"]:checked`)?.value as MbtiLetter);
+    const axes = scoreMBTI(answers);
+    const type = axes.map((item) => item.letter).join("");
+    const [title, description] = MBTI[LANG].types[type];
     const suggestions = recommendPlaces(places, type);
-    result.innerHTML = `<div class="result-card"><span class="result-type">YOUR TRAVEL STYLE · ${type}</span><h2>${escapeHTML(typeTitle(type))}</h2><p>${escapeHTML(describeType(type))}</p><div class="result-recommendations"><h3>${escapeHTML(t("mbtiSuggest"))}</h3>${renderCards(suggestions)}</div><button class="button secondary" id="retry-quiz" type="button">${escapeHTML(t("mbtiRetry"))}</button></div>`;
+    result.innerHTML = `<div class="result-card"><span class="result-type">YOUR TRAVEL STYLE · ${type}</span><h2>${escapeHTML(title)}</h2><p>${escapeHTML(description)}</p>${renderAxisResults(axes)}<div class="result-recommendations"><h3>${escapeHTML(t("mbtiSuggest"))}</h3>${renderCards(suggestions)}</div><button class="button secondary" id="retry-quiz" type="button">${escapeHTML(t("mbtiRetry"))}</button></div>`;
     document.querySelector("#retry-quiz")?.addEventListener("click", () => {
       form.reset();
       result.innerHTML = "";

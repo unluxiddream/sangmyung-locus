@@ -53,6 +53,7 @@ interface RegionIntro {
 interface FaqItem {
   question: string;
   answer: string;
+  category: string;
   region: RegionKey | "";
 }
 

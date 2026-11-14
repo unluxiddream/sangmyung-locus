@@ -63,6 +63,7 @@ TRANSLATED_FIELDS = [
     "markdown",
 ]
 KINDS = [*COLLECTIONS, "regionIntro", "editorPick"]
+FAQ_CATEGORY = re.compile(r"^\s*\[([^\]\n]+)\]\s*$", re.M)  # a line that is only [분류 이름]
 FAQ_ITEM = re.compile(r"^\s*Q\.\s*(.+?)\s*\n\s*A\.\s*(.+?)\s*(?=^\s*Q\.|\Z)", re.M | re.S)
 # (source folder, destination folder): every file is copied as-is, keeping sub-folders.
 STATIC_COPIES = [
@@ -298,11 +299,16 @@ def parse_editor_pick(path: Path, root: Path) -> dict[str, Any]:
 
 
 def parse_faq(path: Path) -> list[dict[str, str]]:
+    """Q. / A. pairs; a line that is only [분류 이름] starts a new category for the questions below it."""
     _, body = read_markdown(path)
     region = region_of(file_key(path))
+    # re.split with one group gives [text before first category, category, text, category, text, ...]
+    parts = FAQ_CATEGORY.split(body)
+    sections = [("", parts[0])] + [(parts[i].strip(), parts[i + 1]) for i in range(1, len(parts), 2)]
     return [
-        {"question": question.strip(), "answer": re.sub(r"\n{3,}", "\n\n", answer).strip(), "region": region}
-        for question, answer in FAQ_ITEM.findall(body)
+        {"question": question.strip(), "answer": re.sub(r"\n{3,}", "\n\n", answer).strip(), "category": category, "region": region}
+        for category, text in sections
+        for question, answer in FAQ_ITEM.findall(text)
     ]
 
 
