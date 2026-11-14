@@ -1,5 +1,5 @@
 # main 브랜치에 push하면 사이트를 빌드(npm run build → dist/)해서 GitHub Pages에 배포함.
-# 배포 주소: https://unluxiddream.github.io/sangmyung-locus/
+# 배포 주소: https://smu-locus.github.io/sangmyung-locus/
 # 저장소 Settings → Pages → Source를 "GitHub Actions"로 설정해야 동작함.
 name: Deploy to GitHub Pages
 
